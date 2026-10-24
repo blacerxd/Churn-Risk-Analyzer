@@ -26,11 +26,10 @@ services:
       SNAPSHOT_AUTOLOAD: ${SNAPSHOT_AUTOLOAD-/test_data/data.json}
     volumes:
       - ./test_data:/test_data:ro
+      - ./sample-data:/sample-data:ro
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./sample-data:/sample-data:ro
     ports:
       - "127.0.0.1:8000:8000"
 
