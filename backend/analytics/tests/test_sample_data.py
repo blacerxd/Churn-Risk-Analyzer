@@ -9,6 +9,7 @@ from django.conf import settings
 
 from analytics.config import ModelConfig
 from analytics.context import CustomerContext
+from analytics.money import customer_money, portfolio_money
 from analytics.scoring import NO_DATA_REASON, RiskLevel, compute
 from customers.importer import parse_snapshot
 
@@ -20,7 +21,8 @@ pytestmark = pytest.mark.skipif(not SAMPLE_DATA.exists(), reason='test_data не
 
 
 @pytest.fixture(scope='module')
-def assessments():
+def sample():
+    """Клиенты, их услуги и транзакции из data.json."""
     parsed = parse_snapshot(json.loads(SAMPLE_DATA.read_text()))
     services, transactions, owner = defaultdict(list), defaultdict(list), {}
     for service in parsed.services:
@@ -28,18 +30,31 @@ def assessments():
         owner[service.id] = service.customer_id
     for transaction in parsed.transactions:
         transactions[owner[transaction.service_id]].append(transaction)
-
-    config = ModelConfig.default()
-    result = {}
     for customer in parsed.customers:
         for service in services[customer.id]:
             service.customer = customer
-        ctx = CustomerContext(
-            customer, services[customer.id], transactions[customer.id],
-            REFERENCE_NOW, config.params,
+    return parsed.customers, services, transactions
+
+
+@pytest.fixture(scope='module')
+def sample_services(sample):
+    return sample[1]
+
+
+@pytest.fixture(scope='module')
+def assessments(sample):
+    customers, services, transactions = sample
+    config = ModelConfig.default()
+    return {
+        customer.id: compute(
+            CustomerContext(
+                customer, services[customer.id], transactions[customer.id],
+                REFERENCE_NOW, config.params,
+            ),
+            config,
         )
-        result[customer.id] = compute(ctx, config)
-    return result
+        for customer in customers
+    }
 
 
 def test_customers_with_only_deleted_or_blocked_services_are_not_assessed(assessments):
@@ -57,6 +72,24 @@ def test_assessed_customers_have_score_and_reason(assessments):
         assert 0 <= assessment.score <= 100, cid
         assert assessment.top_reason and assessment.top_reason != NO_DATA_REASON, cid
         assert all(factor.explanation for factor in assessment.factors), cid
+
+
+def test_money_is_consistent_across_levels(assessments, sample_services):
+    params = ModelConfig.default().params
+    per_customer = {
+        cid: customer_money(sample_services[cid], assessment.score, params)
+        for cid, assessment in assessments.items()
+    }
+    totals = portfolio_money(
+        [(assessments[cid].level, money) for cid, money in per_customer.items()], params,
+    )
+
+    for money in per_customer.values():
+        assert money.expected_loss == sum(s.expected_loss for s in money.services)
+    assert totals.expected_loss == sum(m.expected_loss for m in per_customer.values())
+    # Вероятность не больше 1: потеря не превышает полной стоимости услуг за горизонт.
+    full_revenue = sum(m.monthly_revenue for m in per_customer.values())
+    assert 0 < totals.expected_loss <= full_revenue * params.loss_horizon_months
 
 
 def test_every_feature_fires_on_sample_data(assessments):
