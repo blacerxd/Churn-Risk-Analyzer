@@ -3,7 +3,16 @@
 from datetime import UTC, datetime, timedelta
 
 from analytics.context import CustomerContext, ModelParams
-from customers.models import BonusState, Customer, PaymentTerm, Service, ServiceStatus
+from customers.models import (
+    BonusState,
+    Customer,
+    PaymentTerm,
+    Service,
+    ServiceStatus,
+    Transaction,
+    TransactionStatus,
+    TransactionType,
+)
 
 NOW = datetime(2026, 10, 24, 12, 0, tzinfo=UTC)
 
@@ -24,6 +33,16 @@ def make_service(customer=None, **overrides):
         'expires_at': NOW + timedelta(days=5),
     }
     return Service(**(fields | overrides))
+
+
+def make_transaction(service=None, status=TransactionStatus.PERFORMED, **overrides):
+    performed = status == TransactionStatus.PERFORMED
+    fields = {
+        'id': 100, 'service': service or make_service(), 'type': TransactionType.PROLONG,
+        'status': status, 'amount': 300, 'created_at': NOW - timedelta(days=1),
+        'performed_at': NOW - timedelta(days=1) if performed else None,
+    }
+    return Transaction(**(fields | overrides))
 
 
 def make_context(customer=None, services=None, transactions=(), now=NOW, params=None):

@@ -7,4 +7,7 @@
 
 from .registry import FEATURES, Feature, FeatureResult, feature
 
+# Порядок импорта задаёт порядок признаков в настройках и в форме UI.
+from . import expiring, funds, prolong_wait, payments  # noqa: E402, F401  isort: skip
+
 __all__ = ['FEATURES', 'Feature', 'FeatureResult', 'feature']
