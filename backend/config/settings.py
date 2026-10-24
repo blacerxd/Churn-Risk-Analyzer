@@ -120,6 +120,6 @@ SPECTACULAR_SETTINGS = {
 
 METRICS_TOKEN = os.environ.get('METRICS_TOKEN', '')
 
-# Must match client_max_body_size in frontend/nginx.conf.
-SNAPSHOT_MAX_BYTES = 20 * 1024 * 1024
-DATA_UPLOAD_MAX_MEMORY_SIZE = SNAPSHOT_MAX_BYTES
+
+# Демонстрационные наборы для manage.py load_sample (в Docker монтируется в /sample-data).
+SAMPLE_DATA_DIR = Path(os.environ.get('SAMPLE_DATA_DIR', BASE_DIR.parent / 'sample-data'))

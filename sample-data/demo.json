@@ -1,0 +1,392 @@
+{
+  "accounts": [
+    {
+      "id": 101,
+      "email": "demo-0101@example.test",
+      "balance": 0,
+      "withdrawBalance": 0,
+      "totalReplenished": 50000,
+      "bonusBalance": 0,
+      "bonusState": "unlocked"
+    },
+    {
+      "id": 102,
+      "email": "demo-0102@example.test",
+      "balance": 0,
+      "withdrawBalance": 0,
+      "totalReplenished": 50000,
+      "bonusBalance": 0,
+      "bonusState": "unlocked"
+    },
+    {
+      "id": 103,
+      "email": "demo-0103@example.test",
+      "balance": 50000,
+      "withdrawBalance": 0,
+      "totalReplenished": 50000,
+      "bonusBalance": 0,
+      "bonusState": "unlocked"
+    },
+    {
+      "id": 104,
+      "email": "demo-0104@example.test",
+      "balance": 200,
+      "withdrawBalance": 0,
+      "totalReplenished": 50000,
+      "bonusBalance": 5000,
+      "bonusState": "locked"
+    },
+    {
+      "id": 105,
+      "email": "demo-0105@example.test",
+      "balance": 200,
+      "withdrawBalance": 0,
+      "totalReplenished": 50000,
+      "bonusBalance": 5000,
+      "bonusState": "unlocked"
+    },
+    {
+      "id": 106,
+      "email": "demo-0106@example.test",
+      "balance": 100,
+      "withdrawBalance": 0,
+      "totalReplenished": 50000,
+      "bonusBalance": 0,
+      "bonusState": "unlocked"
+    },
+    {
+      "id": 107,
+      "email": "demo-0107@example.test",
+      "balance": 0,
+      "withdrawBalance": 100000,
+      "totalReplenished": 50000,
+      "bonusBalance": 0,
+      "bonusState": "unlocked"
+    },
+    {
+      "id": 108,
+      "email": "demo-0108@example.test",
+      "balance": 0,
+      "withdrawBalance": 0,
+      "totalReplenished": 50000,
+      "bonusBalance": 0,
+      "bonusState": "unlocked"
+    },
+    {
+      "id": 109,
+      "email": "demo-0109@example.test",
+      "balance": 100000,
+      "withdrawBalance": 0,
+      "totalReplenished": 50000,
+      "bonusBalance": 0,
+      "bonusState": "unlocked"
+    },
+    {
+      "id": 110,
+      "email": "demo-0110@example.test",
+      "balance": 50000,
+      "withdrawBalance": 0,
+      "totalReplenished": 500000,
+      "bonusBalance": 0,
+      "bonusState": "unlocked"
+    },
+    {
+      "id": 111,
+      "email": "demo-0111@example.test",
+      "balance": 10000,
+      "withdrawBalance": 0,
+      "totalReplenished": 50000,
+      "bonusBalance": 0,
+      "bonusState": "unlocked"
+    },
+    {
+      "id": 112,
+      "email": "demo-0112@example.test",
+      "balance": 10000,
+      "withdrawBalance": 0,
+      "totalReplenished": 50000,
+      "bonusBalance": 0,
+      "bonusState": "unlocked"
+    }
+  ],
+  "services": [
+    {
+      "id": 1001,
+      "name": "VPS-Wait",
+      "ownerId": 101,
+      "paymentTerm": "month",
+      "autoProlong": true,
+      "createdAt": "2026-09-17T15:00:00.000Z",
+      "expiresAt": "2026-10-17T15:00:00.000Z",
+      "status": "prolong_wait",
+      "price": 1500
+    },
+    {
+      "id": 1002,
+      "name": "VPS-Last-Day",
+      "ownerId": 102,
+      "paymentTerm": "month",
+      "autoProlong": false,
+      "createdAt": "2026-09-20T03:00:00.000Z",
+      "expiresAt": "2026-10-20T03:00:00.000Z",
+      "status": "active",
+      "price": 2500
+    },
+    {
+      "id": 1003,
+      "name": "VPS-Manual",
+      "ownerId": 103,
+      "paymentTerm": "month",
+      "autoProlong": false,
+      "createdAt": "2026-09-20T15:00:00.000Z",
+      "expiresAt": "2026-10-20T15:00:00.000Z",
+      "status": "active",
+      "price": 2500
+    },
+    {
+      "id": 1004,
+      "name": "VPS-Bonus-Locked",
+      "ownerId": 104,
+      "paymentTerm": "month",
+      "autoProlong": true,
+      "createdAt": "2026-09-22T15:00:00.000Z",
+      "expiresAt": "2026-10-22T15:00:00.000Z",
+      "status": "active",
+      "price": 1200
+    },
+    {
+      "id": 1005,
+      "name": "VPS-Bonus-Open",
+      "ownerId": 105,
+      "paymentTerm": "month",
+      "autoProlong": true,
+      "createdAt": "2026-09-22T15:00:00.000Z",
+      "expiresAt": "2026-10-22T15:00:00.000Z",
+      "status": "active",
+      "price": 1200
+    },
+    {
+      "id": 1006,
+      "name": "GPU-Hourly",
+      "ownerId": 106,
+      "paymentTerm": "hour",
+      "autoProlong": true,
+      "createdAt": "2026-10-19T14:30:00.000Z",
+      "expiresAt": "2026-10-19T15:30:00.000Z",
+      "status": "active",
+      "price": 5
+    },
+    {
+      "id": 1007,
+      "name": "VPS-Referral",
+      "ownerId": 107,
+      "paymentTerm": "month",
+      "autoProlong": true,
+      "createdAt": "2026-09-21T15:00:00.000Z",
+      "expiresAt": "2026-10-21T15:00:00.000Z",
+      "status": "active",
+      "price": 2000
+    },
+    {
+      "id": 1008,
+      "name": "VPS-Suspended",
+      "ownerId": 108,
+      "paymentTerm": "week",
+      "autoProlong": true,
+      "createdAt": "2026-10-17T15:00:00.000Z",
+      "expiresAt": "2026-10-24T15:00:00.000Z",
+      "status": "suspended",
+      "price": 700
+    },
+    {
+      "id": 1009,
+      "name": "VPS-Orders",
+      "ownerId": 109,
+      "paymentTerm": "year",
+      "autoProlong": true,
+      "createdAt": "2026-05-07T15:00:00.000Z",
+      "expiresAt": "2027-05-07T15:00:00.000Z",
+      "status": "active",
+      "price": 12000
+    },
+    {
+      "id": 1010,
+      "name": "Dedicated-Year",
+      "ownerId": 110,
+      "paymentTerm": "year",
+      "autoProlong": true,
+      "createdAt": "2026-05-07T15:00:00.000Z",
+      "expiresAt": "2027-05-07T15:00:00.000Z",
+      "status": "active",
+      "price": 12000
+    },
+    {
+      "id": 1011,
+      "name": "VPS-Deleted",
+      "ownerId": 112,
+      "paymentTerm": "month",
+      "autoProlong": false,
+      "createdAt": "2026-09-09T15:00:00.000Z",
+      "expiresAt": "2026-10-09T15:00:00.000Z",
+      "status": "deleted",
+      "price": 1500
+    },
+    {
+      "id": 1012,
+      "name": "VPS-Blocked",
+      "ownerId": 112,
+      "paymentTerm": "month",
+      "autoProlong": false,
+      "createdAt": "2026-09-29T15:00:00.000Z",
+      "expiresAt": "2026-10-29T15:00:00.000Z",
+      "status": "blocked",
+      "price": 1500
+    }
+  ],
+  "transactions": [
+    {
+      "id": 10001,
+      "amount": 1000,
+      "status": "performed",
+      "performedAt": "2026-09-17T15:01:00.000Z",
+      "createdAt": "2026-09-17T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1001
+    },
+    {
+      "id": 10002,
+      "amount": 1000,
+      "status": "performed",
+      "performedAt": "2026-09-20T03:01:00.000Z",
+      "createdAt": "2026-09-20T03:00:00.000Z",
+      "type": "order",
+      "serviceId": 1002
+    },
+    {
+      "id": 10003,
+      "amount": 1000,
+      "status": "performed",
+      "performedAt": "2026-09-20T15:01:00.000Z",
+      "createdAt": "2026-09-20T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1003
+    },
+    {
+      "id": 10004,
+      "amount": 1000,
+      "status": "performed",
+      "performedAt": "2026-09-22T15:01:00.000Z",
+      "createdAt": "2026-09-22T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1004
+    },
+    {
+      "id": 10005,
+      "amount": 1000,
+      "status": "performed",
+      "performedAt": "2026-09-22T15:01:00.000Z",
+      "createdAt": "2026-09-22T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1005
+    },
+    {
+      "id": 10006,
+      "amount": 5,
+      "status": "performed",
+      "performedAt": "2026-10-19T14:31:00.000Z",
+      "createdAt": "2026-10-19T14:30:00.000Z",
+      "type": "order",
+      "serviceId": 1006
+    },
+    {
+      "id": 10007,
+      "amount": 1000,
+      "status": "performed",
+      "performedAt": "2026-09-21T15:01:00.000Z",
+      "createdAt": "2026-09-21T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1007
+    },
+    {
+      "id": 10008,
+      "amount": 700,
+      "status": "performed",
+      "performedAt": "2026-10-17T15:01:00.000Z",
+      "createdAt": "2026-10-17T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1008
+    },
+    {
+      "id": 10009,
+      "amount": 1000,
+      "status": "performed",
+      "performedAt": "2026-05-07T15:01:00.000Z",
+      "createdAt": "2026-05-07T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1009
+    },
+    {
+      "id": 10010,
+      "amount": 500,
+      "status": "not_performed",
+      "performedAt": null,
+      "createdAt": "2026-10-18T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1009
+    },
+    {
+      "id": 10011,
+      "amount": 500,
+      "status": "not_performed",
+      "performedAt": null,
+      "createdAt": "2026-10-17T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1009
+    },
+    {
+      "id": 10012,
+      "amount": 500,
+      "status": "not_performed",
+      "performedAt": null,
+      "createdAt": "2026-10-16T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1009
+    },
+    {
+      "id": 10013,
+      "amount": 500,
+      "status": "not_performed",
+      "performedAt": null,
+      "createdAt": "2026-10-15T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1009
+    },
+    {
+      "id": 10014,
+      "amount": 1000,
+      "status": "performed",
+      "performedAt": "2026-05-07T15:01:00.000Z",
+      "createdAt": "2026-05-07T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1010
+    },
+    {
+      "id": 10015,
+      "amount": 1000,
+      "status": "performed",
+      "performedAt": "2026-09-09T15:01:00.000Z",
+      "createdAt": "2026-09-09T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1011
+    },
+    {
+      "id": 10016,
+      "amount": 1000,
+      "status": "performed",
+      "performedAt": "2026-09-29T15:01:00.000Z",
+      "createdAt": "2026-09-29T15:00:00.000Z",
+      "type": "order",
+      "serviceId": 1012
+    }
+  ]
+}
