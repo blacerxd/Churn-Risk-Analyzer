@@ -39,6 +39,7 @@ def test_login_requires_csrf():
     response = client.post(LOGIN_URL, {'username': 'analyst', 'password': 'secret-pass'}, format='json')
 
     assert response.status_code == 403
+    assert response.json()['code'] == 'permission_denied'
 
 
 def test_login_with_csrf_token(user):

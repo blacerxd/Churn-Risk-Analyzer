@@ -7,6 +7,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      '/api/v1/auth/login': {
+        target: backend,
+        bypass: (req) => (req.method === 'GET' ? '/index.html' : undefined),
+      },
       '/api': backend,
       '/metrics': backend,
     },
