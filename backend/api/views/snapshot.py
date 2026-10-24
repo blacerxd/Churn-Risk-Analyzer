@@ -14,6 +14,7 @@ from api.serializers import (
     SnapshotResultSerializer,
     SnapshotUploadSerializer,
 )
+from analytics.models import AnalyticsSnapshot, RecalcReason
 from customers.importer import SnapshotValidationError, replace_snapshot
 
 
@@ -63,9 +64,20 @@ class SnapshotView(APIView):
             'transactions': result.transactions,
             'status_changes': result.status_changes,
             'imported_at': result.imported_at,
-            'recalculated_at': None,
+            'recalculated_at': self._recalculated_at(result.imported_at),
         }
         return Response(SnapshotResultSerializer(data).data)
+
+    @staticmethod
+    def _recalculated_at(imported_at):
+        # Recalculation runs on snapshot_replaced in the same transaction, with now=imported_at.
+        snapshot = (
+            AnalyticsSnapshot.objects
+            .filter(reason=RecalcReason.SNAPSHOT, calculated_at=imported_at)
+            .order_by('-id')
+            .first()
+        )
+        return snapshot.calculated_at if snapshot else None
 
     @staticmethod
     def _check_size(request):

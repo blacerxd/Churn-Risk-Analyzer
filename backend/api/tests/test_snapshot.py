@@ -4,6 +4,7 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import CommandError, call_command
 
+from analytics.models import AnalyticsSnapshot, RiskAssessment
 from customers.models import Customer, Service, Transaction
 from customers.tests.snapshots import account, service, snapshot
 
@@ -37,7 +38,9 @@ def test_loads_json_body(auth_client):
     assert body['transactions'] == 1
     assert body['status_changes'] == 0
     assert body['imported_at']
+    assert body['recalculated_at'] == body['imported_at']
     assert counts() == (1, 1, 1)
+    assert RiskAssessment.objects.count() == 1
 
 
 def test_loads_multipart_file(auth_client):
@@ -64,6 +67,7 @@ def test_replaces_previous_data(auth_client):
 
 def test_invalid_snapshot_reports_errors_and_keeps_data(auth_client):
     auth_client.put(URL, snapshot(), format='json')
+    recalculations = AnalyticsSnapshot.objects.count()
     data = snapshot(services=[service(owner_id=99, status='unknown')])
 
     response = auth_client.put(URL, data, format='json')
@@ -75,6 +79,7 @@ def test_invalid_snapshot_reports_errors_and_keeps_data(auth_client):
     paths = {error['path'] for error in body['errors']}
     assert {'services[0].status', 'services[0].ownerId'} <= paths
     assert counts() == (1, 1, 1)
+    assert AnalyticsSnapshot.objects.count() == recalculations
 
 
 def test_not_an_object(auth_client):
