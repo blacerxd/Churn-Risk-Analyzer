@@ -43,9 +43,36 @@
 | Даты | ISO 8601 UTC; `expiresAt ≥ createdAt` |
 | `performedAt` | `null` при `not_performed`; обязателен и `≥ createdAt` при `performed` |
 
-Ответ: `{"accounts": N, "services": N, "transactions": N, "recalculated_at": "..."}`.
+Снимок передаётся JSON-телом (`Content-Type: application/json`) или файлом в поле `file`
+(`multipart/form-data`). Максимальный размер 20 МБ.
 Загрузка заменяет данные целиком, в одной транзакции БД (при ошибке валидации ничего не меняется).
 В той же транзакции пересчитываются оценки всех клиентов, `recalculated_at` — время этого пересчёта.
+
+Ответ 200:
+
+```json
+{"accounts": 10, "services": 30, "transactions": 100, "status_changes": 2,
+ "imported_at": "2026-10-25T10:00:00Z", "recalculated_at": "2026-10-25T10:00:01Z"}
+```
+
+`status_changes` — сколько услуг сменили статус по сравнению с прошлым снимком.
+
+Ошибки:
+
+| Код | `code` | Когда |
+|---|---|---|
+| 400 | `invalid_snapshot` | данные не прошли проверку, список в `errors`, всего `errors_total` (в ответе не больше 100) |
+| 400 | `parse_error` | тело или файл не являются JSON, в multipart нет поля `file` |
+| 413 | `too_large` | снимок больше 20 МБ |
+
+```json
+{"detail": "Снимок не прошёл проверку: ошибок 2", "code": "invalid_snapshot", "errors_total": 2,
+ "errors": [{"path": "services[0].ownerId", "message": "accounts с id 99 не найден"},
+            {"path": "services[0].status", "message": "недопустимое значение 'x', ожидается одно из: ..."}]}
+```
+
+При старте контейнера, если база пуста, загружается `test_data/data.json`
+(переменная `SNAPSHOT_AUTOLOAD`, пустое значение отключает).
 
 ## `GET /api/v1/customers`
 

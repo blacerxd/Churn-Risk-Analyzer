@@ -23,6 +23,9 @@ services:
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
+      SNAPSHOT_AUTOLOAD: ${SNAPSHOT_AUTOLOAD-/test_data/data.json}
+    volumes:
+      - ./test_data:/test_data:ro
     depends_on:
       db:
         condition: service_healthy
