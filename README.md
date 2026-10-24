@@ -1,1 +1,1 @@
-# Churn-Risk-Analyzer
+# Churn Risk Analyzer
