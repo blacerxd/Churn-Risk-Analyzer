@@ -64,9 +64,17 @@ jobs:
       - run: npm run lint
       - run: npm run build
 
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # env_file: .env is required by compose, real values live only on the server
+      - run: cp .env.example .env
+      - run: docker compose config --quiet
+
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [backend, frontend]
+    needs: [backend, frontend, compose]
     runs-on: ubuntu-latest
     concurrency:
       group: deploy
