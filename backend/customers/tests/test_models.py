@@ -100,6 +100,12 @@ def test_service_enums_must_be_known(field, value):
     assert_rejected(lambda: make_service(customer, **{field: value}))
 
 
+@pytest.mark.parametrize('name', ['vps 1', 'сервер', ''])
+def test_service_name_must_match_source_pattern(name):
+    customer = make_customer()
+    assert_rejected(lambda: make_service(customer, name=name))
+
+
 def test_service_cannot_expire_before_creation():
     customer = make_customer()
     assert_rejected(lambda: make_service(customer, expires_at=NOW - timedelta(seconds=1)))
@@ -110,9 +116,15 @@ def test_service_may_expire_at_creation_moment():
     assert service.expires_at == service.created_at
 
 
-def test_transaction_amount_is_non_negative():
+@pytest.mark.parametrize('amount', [-1, 1001])
+def test_transaction_amount_is_within_source_range(amount):
     service = make_service(make_customer())
-    assert_rejected(lambda: make_transaction(service, amount=-1))
+    assert_rejected(lambda: make_transaction(service, amount=amount))
+
+
+@pytest.mark.parametrize('amount', [0, 1000])
+def test_transaction_amount_bounds_are_inclusive(amount):
+    make_transaction(make_service(make_customer()), amount=amount)
 
 
 @pytest.mark.parametrize(('field', 'value'), [

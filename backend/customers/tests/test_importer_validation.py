@@ -89,8 +89,15 @@ def test_missing_field_is_reported_with_path():
     (snapshot(accounts=[account(balance=2**63)]), 'accounts[0].balance', 'слишком большое число'),
     (snapshot(accounts=[account(bonusBalance=-1)]), 'accounts[0].bonusBalance',
      'сумма не может быть отрицательной'),
-    (snapshot(accounts=[account(email='not-an-email')]), 'accounts[0].email', 'некорректный email'),
-    (snapshot(services=[service(name='  ')]), 'services[0].name', 'ожидается непустая строка'),
+    (snapshot(accounts=[account(email=None)]), 'accounts[0].email', 'ожидается строка'),
+    (snapshot(services=[service(name='vps 1')]), 'services[0].name',
+     'допустимы только латинские буквы, цифры и дефис'),
+    (snapshot(services=[service(name='сервер')]), 'services[0].name',
+     'допустимы только латинские буквы, цифры и дефис'),
+    (snapshot(services=[service(name='')]), 'services[0].name',
+     'допустимы только латинские буквы, цифры и дефис'),
+    (snapshot(transactions=[transaction(amount=1001)]), 'transactions[0].amount',
+     'сумма транзакции больше 1000'),
     (snapshot(services=[service(autoProlong='false')]), 'services[0].autoProlong',
      'ожидается true или false'),
     (snapshot(services=[service(expiresAt='2026-11-01T00:00:00')]), 'services[0].expiresAt',
@@ -102,6 +109,18 @@ def test_missing_field_is_reported_with_path():
 ])
 def test_invalid_values(payload, path, message):
     assert errors_of(payload) == [SnapshotError(path, message)]
+
+
+def test_email_format_is_not_validated_like_in_source():
+    # В исходной схеме email — text UNIQUE без проверки формата по RFC.
+    parsed = parse_snapshot(snapshot(accounts=[account(email='not-an-email')]))
+    assert parsed.customers[0].email == 'not-an-email'
+
+
+@pytest.mark.parametrize('amount', [0, 1000])
+def test_transaction_amount_bounds_are_inclusive(amount):
+    parsed = parse_snapshot(snapshot(transactions=[transaction(amount=amount)]))
+    assert parsed.transactions[0].amount == amount
 
 
 def test_id_must_be_positive():
@@ -170,7 +189,7 @@ def test_not_performed_without_performed_at_is_valid():
 
 def test_all_errors_are_collected_at_once():
     errors = errors_of(snapshot(
-        accounts=[account(balance=-1, email='bad')],
+        accounts=[account(balance=-1, email=7)],
         services=[service(price=-5)],
     ))
     assert [error.path for error in errors] == [
