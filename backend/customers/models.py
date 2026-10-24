@@ -167,3 +167,41 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f'#{self.id} {self.type} {self.amount}'
+
+
+class ServiceStatusEvent(models.Model):
+    """Смена статуса услуги, обнаруженная при загрузке нового снимка.
+
+    Источник не отдаёт историю статусов, поэтому она копится из разницы между снимками.
+    service_id и customer_id хранятся без внешних ключей: строки услуг удаляются при каждой
+    замене снимка, а история должна их пережить.
+    """
+
+    service_id = models.BigIntegerField('ID услуги')
+    customer_id = models.BigIntegerField('ID клиента')
+    old_status = models.CharField('прежний статус', max_length=16, choices=ServiceStatus.choices)
+    new_status = models.CharField('новый статус', max_length=16, choices=ServiceStatus.choices)
+    detected_at = models.DateTimeField('обнаружено')
+
+    class Meta:
+        verbose_name = 'смена статуса услуги'
+        verbose_name_plural = 'смены статусов услуг'
+        ordering = ['detected_at', 'id']
+        indexes = [
+            # График фактов: сколько услуг перешло в статус за день.
+            models.Index(fields=['new_status', 'detected_at'], name='status_event_new_detected_idx'),
+            models.Index(fields=['service_id'], name='status_event_service_idx'),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(old_status__in=ServiceStatus.values)
+                & Q(new_status__in=ServiceStatus.values),
+                name='status_event_statuses_valid',
+            ),
+            models.CheckConstraint(
+                condition=~Q(old_status=F('new_status')), name='status_event_status_changed',
+            ),
+        ]
+
+    def __str__(self):
+        return f'Услуга #{self.service_id}: {self.old_status} → {self.new_status}'

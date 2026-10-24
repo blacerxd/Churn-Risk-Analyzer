@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Customer, Service, Transaction
+from .models import Customer, Service, ServiceStatusEvent, Transaction
 
 
 @admin.register(Customer)
@@ -29,3 +29,21 @@ class TransactionAdmin(admin.ModelAdmin):
     search_fields = ('service__name', 'service__customer__email')
     list_select_related = ('service',)
     raw_id_fields = ('service',)
+
+
+@admin.register(ServiceStatusEvent)
+class ServiceStatusEventAdmin(admin.ModelAdmin):
+    list_display = ('detected_at', 'service_id', 'customer_id', 'old_status', 'new_status')
+    list_filter = ('new_status', 'old_status')
+    search_fields = ('=service_id', '=customer_id')
+    date_hierarchy = 'detected_at'
+
+    # Журнал копится автоматически при загрузке снимков, ручное редактирование исказит факты.
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
