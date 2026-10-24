@@ -1,9 +1,17 @@
-"""Движок оценки риска оттока.
+"""Движок оценки риска оттока (noisy-OR).
 
-score = Σ(вес_i × значение_i) / Σ вес_i × 100, значения признаков в [0, 1].
-Вклад признака — его доля в score в баллах, поэтому сумма вкладов равна score.
+Каждый признак — независимая причина ухода. Вес признака (0–100) — вероятность ухода в
+процентах, если причина проявилась полностью; значение признака (0–1) — насколько проявилась:
+
+    pᵢ = вес_i / 100 × значение_i
+    риск = 1 − Π(1 − pᵢ)          — вероятность, что сработает хотя бы одна причина
+    score = риск × 100
+
+Одна сильная причина сама даёт высокий риск, несколько слабых накапливаются. Вклад признака —
+доля score, пропорциональная −ln(1 − pᵢ), поэтому сумма вкладов равна score.
 """
 
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -15,6 +23,7 @@ from .features import FEATURES, Feature
 
 NO_DATA_REASON = 'Недостаточно данных для оценки'
 NO_RISK_REASON = 'Признаков риска не обнаружено'
+MAX_WEIGHT = 100
 
 
 class RiskLevel(models.TextChoices):
@@ -62,6 +71,22 @@ def level_for(score: float, thresholds: Thresholds) -> RiskLevel:
     return RiskLevel.LOW
 
 
+def combine(probabilities: list[float]) -> tuple[float, list[float]]:
+    """Общий риск 0–100 и вклад каждой причины в баллах (сумма вкладов равна риску)."""
+    risk = 1 - math.prod(1 - p for p in probabilities)
+    if risk == 0:
+        return 0.0, [0.0] * len(probabilities)
+
+    certain = [p >= 1 for p in probabilities]
+    if any(certain):
+        # −ln(0) = ∞: весь риск приходится на причины, сработавшие с вероятностью 1.
+        shares = [float(c) for c in certain]
+    else:
+        shares = [-math.log1p(-p) for p in probabilities]
+    total = sum(shares)
+    return risk * 100, [risk * 100 * share / total for share in shares]
+
+
 def compute(
     ctx: CustomerContext,
     config: ModelConfig,
@@ -72,26 +97,26 @@ def compute(
         return NOT_ASSESSED
 
     weighted = [(feature, config.weight(feature)) for feature in features.values()]
-    if any(weight < 0 for _, weight in weighted):
-        raise ValueError('Веса признаков не могут быть отрицательными')
-    total_weight = sum(weight for _, weight in weighted)
-    if total_weight <= 0:
-        raise ValueError('Хотя бы один признак должен иметь положительный вес')
-
-    raw_score = 0.0
-    factors = []
     for feature, weight in weighted:
-        result = feature.compute(ctx)
-        points = weight * result.value / total_weight * 100
-        raw_score += points
-        factors.append(FactorResult(
+        if not 0 <= weight <= MAX_WEIGHT:
+            raise ValueError(f'Вес признака {feature.key!r} должен быть от 0 до {MAX_WEIGHT}')
+
+    results = [feature.compute(ctx) for feature, _ in weighted]
+    raw_score, contributions = combine([
+        weight / MAX_WEIGHT * result.value for (_, weight), result in zip(weighted, results)
+    ])
+
+    factors = [
+        FactorResult(
             key=feature.key, title=feature.title, value=result.value, weight=weight,
             contribution=round(points, 1), explanation=result.explanation,
-        ))
+        )
+        for (feature, weight), result, points in zip(weighted, results, contributions)
+    ]
+    factors.sort(key=lambda factor: factor.contribution, reverse=True)
 
     # Уровень считается от округлённого score: пользователь видит 65.0 и уровень «высокий».
     score = round(raw_score, 1)
-    factors.sort(key=lambda factor: factor.contribution, reverse=True)
     return Assessment(
         score=score,
         level=level_for(score, config.thresholds),

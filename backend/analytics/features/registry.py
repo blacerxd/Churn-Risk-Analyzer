@@ -40,9 +40,12 @@ FEATURES: dict[str, Feature] = {}
 
 
 def feature(key, title, default_weight, description='', *, registry=FEATURES):
-    """Регистрирует функцию как признак риска. registry подменяется в тестах."""
-    if default_weight < 0:
-        raise ValueError(f'Вес признака {key!r} не может быть отрицательным')
+    """Регистрирует функцию как признак риска. registry подменяется в тестах.
+
+    default_weight — вероятность ухода в процентах (0–100), если причина проявилась полностью.
+    """
+    if not 0 <= default_weight <= 100:
+        raise ValueError(f'Вес признака {key!r} должен быть от 0 до 100')
 
     def decorator(fn):
         if key in registry:

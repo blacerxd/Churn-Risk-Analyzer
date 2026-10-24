@@ -28,9 +28,10 @@ def test_duplicate_key_is_rejected():
         feature('sample', 'Другой', 10, registry=registry)(lambda ctx: None)
 
 
-def test_negative_default_weight_is_rejected():
-    with pytest.raises(ValueError, match='не может быть отрицательным'):
-        feature('sample', 'Пример', -1, registry={})
+@pytest.mark.parametrize('weight', [-1, 101])
+def test_default_weight_outside_0_100_is_rejected(weight):
+    with pytest.raises(ValueError, match='от 0 до 100'):
+        feature('sample', 'Пример', weight, registry={})
 
 
 @pytest.mark.parametrize('value', [0, 0.5, 1])
