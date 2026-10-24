@@ -120,5 +120,6 @@ SPECTACULAR_SETTINGS = {
 
 METRICS_TOKEN = os.environ.get('METRICS_TOKEN', '')
 
+
 # Демонстрационные наборы для manage.py load_sample (в Docker монтируется в /sample-data).
 SAMPLE_DATA_DIR = Path(os.environ.get('SAMPLE_DATA_DIR', BASE_DIR.parent / 'sample-data'))

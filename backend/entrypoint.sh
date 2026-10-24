@@ -8,4 +8,8 @@ if [ -n "$DJANGO_SUPERUSER_USERNAME" ]; then
     python manage.py createsuperuser --noinput 2>/dev/null || true
 fi
 
+if [ -n "$SNAPSHOT_AUTOLOAD" ]; then
+    python manage.py load_snapshot "$SNAPSHOT_AUTOLOAD" --if-empty
+fi
+
 exec uvicorn config.asgi:application --host 0.0.0.0 --port 8000
