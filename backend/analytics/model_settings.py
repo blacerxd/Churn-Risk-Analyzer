@@ -15,6 +15,7 @@ from .config import ModelConfig, Thresholds
 from .context import ModelParams
 from .features import FEATURES, Feature
 from .models import ModelSettings
+from .signals import settings_updated
 
 WEIGHT_MIN, WEIGHT_MAX = 0, 100
 
@@ -198,7 +199,8 @@ def update_settings(patch: Any, features: Mapping[str, Feature] = FEATURES) -> d
 
     Сохраняются только переданные поля: значения, которые через панель не меняли, продолжают
     следовать умолчаниям из кода. Чтение, слияние и запись — под блокировкой строки,
-    чтобы одновременные PATCH не затирали изменения друг друга.
+    чтобы одновременные PATCH не затирали изменения друг друга. В той же транзакции
+    по сигналу settings_updated пересчитываются оценки всех клиентов.
     """
     ModelSettings.load()  # создать запись, если её ещё нет
     with transaction.atomic():
@@ -209,4 +211,5 @@ def update_settings(patch: Any, features: Mapping[str, Feature] = FEATURES) -> d
             for key in section_patch:
                 saved[key] = merged[section][key]
         stored.save()
+        settings_updated.send(sender=ModelSettings)
     return merged

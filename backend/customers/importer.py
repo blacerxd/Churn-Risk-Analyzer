@@ -11,9 +11,10 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from django.db import connection, transaction
+from django.db import transaction
 from django.utils import timezone
 
+from .locking import lock_source_data
 from .models import (
     SERVICE_NAME_PATTERN,
     TRANSACTION_AMOUNT_MAX,
@@ -32,8 +33,6 @@ from .signals import snapshot_replaced
 MAX_ERRORS = 100
 MAX_BIGINT = 2**63 - 1
 BULK_BATCH_SIZE = 1000
-# Произвольный постоянный ключ: сериализует одновременные загрузки снимка.
-SNAPSHOT_LOCK_KEY = 0x5A4E4150
 
 
 @dataclass(frozen=True)
@@ -323,15 +322,15 @@ def replace_snapshot(payload: Any, *, now: datetime | None = None) -> ImportResu
     """Полностью заменяет исходные данные снимком в одной транзакции.
 
     При ошибке валидации бросает SnapshotValidationError, данные в БД не меняются.
-    После коммита отправляет сигнал snapshot_replaced (по нему запускается пересчёт).
+    Сигнал snapshot_replaced отправляется внутри той же транзакции: по нему пересчитываются
+    оценки риска, поэтому данные и оценки меняются вместе, а ошибка пересчёта откатывает
+    загрузку целиком.
     """
     parsed = parse_snapshot(payload)
     now = now or timezone.now()
 
     with transaction.atomic():
-        if connection.vendor == 'postgresql':
-            with connection.cursor() as cursor:
-                cursor.execute('SELECT pg_advisory_xact_lock(%s)', [SNAPSHOT_LOCK_KEY])
+        lock_source_data()
 
         previous = dict(Service.objects.values_list('id', 'status'))
         events = _status_events(previous, parsed.services, now)
@@ -353,7 +352,5 @@ def replace_snapshot(payload: Any, *, now: datetime | None = None) -> ImportResu
             status_changes=len(events),
             imported_at=now,
         )
-        # on_commit, а не прямой вызов: если нас вызвали внутри внешней транзакции,
-        # пересчёт не должен увидеть данные раньше, чем они реально закоммичены.
-        transaction.on_commit(lambda: snapshot_replaced.send(sender=None, result=result))
+        snapshot_replaced.send(sender=None, result=result)
     return result
