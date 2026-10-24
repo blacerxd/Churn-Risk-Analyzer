@@ -8,6 +8,10 @@
 from django.db import models
 from django.db.models import F, Q
 
+# Ограничения исходной схемы (test_data/001_schema.up.sql).
+SERVICE_NAME_PATTERN = r'^[A-Za-z0-9-]+$'
+TRANSACTION_AMOUNT_MAX = 1000
+
 
 class BonusState(models.TextChoices):
     LOCKED = 'locked', 'Недоступен'
@@ -45,7 +49,8 @@ class Customer(models.Model):
     """Аккаунт клиента (`accounts` в снимке)."""
 
     id = models.BigIntegerField('ID', primary_key=True)
-    email = models.EmailField('email', unique=True)
+    # Как в источнике: уникальная строка, формат email по RFC не проверяется.
+    email = models.TextField('email', unique=True)
     balance = models.BigIntegerField('основной баланс', default=0)
     withdraw_balance = models.BigIntegerField('баланс к выводу', default=0)
     bonus_balance = models.BigIntegerField('бонусный баланс', default=0)
@@ -89,7 +94,7 @@ class Service(models.Model):
     customer = models.ForeignKey(
         Customer, on_delete=models.PROTECT, related_name='services', verbose_name='клиент',
     )
-    name = models.CharField('название', max_length=255)
+    name = models.TextField('название')
     status = models.CharField('статус', max_length=16, choices=ServiceStatus.choices)
     payment_term = models.CharField('период оплаты', max_length=16, choices=PaymentTerm.choices)
     price = models.BigIntegerField('стоимость за период')
@@ -109,6 +114,9 @@ class Service(models.Model):
         ]
         constraints = [
             models.CheckConstraint(condition=Q(price__gte=0), name='service_price_gte_0'),
+            models.CheckConstraint(
+                condition=Q(name__regex=SERVICE_NAME_PATTERN), name='service_name_format',
+            ),
             models.CheckConstraint(
                 condition=Q(status__in=ServiceStatus.values), name='service_status_valid',
             ),
@@ -133,7 +141,7 @@ class Transaction(models.Model):
     )
     type = models.CharField('тип', max_length=16, choices=TransactionType.choices)
     status = models.CharField('статус', max_length=16, choices=TransactionStatus.choices)
-    amount = models.BigIntegerField('сумма')
+    amount = models.IntegerField('сумма')
     created_at = models.DateTimeField('создана')
     performed_at = models.DateTimeField('выполнена', null=True, blank=True)
 
@@ -142,7 +150,10 @@ class Transaction(models.Model):
         verbose_name_plural = 'транзакции'
         ordering = ['id']
         constraints = [
-            models.CheckConstraint(condition=Q(amount__gte=0), name='transaction_amount_gte_0'),
+            models.CheckConstraint(
+                condition=Q(amount__gte=0, amount__lte=TRANSACTION_AMOUNT_MAX),
+                name='transaction_amount_range',
+            ),
             models.CheckConstraint(
                 condition=Q(status__in=TransactionStatus.values), name='transaction_status_valid',
             ),

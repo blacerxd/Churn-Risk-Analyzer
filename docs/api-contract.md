@@ -35,7 +35,9 @@
 | `transactions[].status` | `performed`, `not_performed` |
 | `transactions[].type` | `prolong`, `order` |
 | Денежные поля | целые числа ≥ 0 в единицах баланса (100 = €1) |
-| `email` | уникален |
+| `transactions[].amount` | целое число от 0 до 1000 включительно |
+| `email` | строка, уникальна; формат по RFC не проверяется (как в исходной схеме) |
+| `services[].name` | только латинские буквы, цифры и дефис: `^[A-Za-z0-9-]+$` |
 | `services[].ownerId` | ссылается на существующий `accounts[].id` |
 | `transactions[].serviceId` | ссылается на существующий `services[].id` (транзакция привязана к услуге, клиент определяется через услугу) |
 | Даты | ISO 8601 UTC; `expiresAt ≥ createdAt` |

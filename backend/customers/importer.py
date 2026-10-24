@@ -5,17 +5,18 @@
 replace_snapshot() атомарно заменяет данные целиком.
 """
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
 from django.db import connection, transaction
 from django.utils import timezone
 
 from .models import (
+    SERVICE_NAME_PATTERN,
+    TRANSACTION_AMOUNT_MAX,
     BonusState,
     Customer,
     PaymentTerm,
@@ -89,22 +90,23 @@ def _money(value):
     return value
 
 
-def _text(max_length):
-    def parse(value):
-        if not isinstance(value, str) or not value.strip():
-            raise ValueError('ожидается непустая строка')
-        if len(value) > max_length:
-            raise ValueError(f'длина больше {max_length} символов')
-        return value
-    return parse
+def _transaction_amount(value):
+    value = _money(value)
+    if value > TRANSACTION_AMOUNT_MAX:
+        raise ValueError(f'сумма транзакции больше {TRANSACTION_AMOUNT_MAX}')
+    return value
 
 
-def _email(value):
-    value = _text(254)(value)
-    try:
-        validate_email(value)
-    except ValidationError:
-        raise ValueError('некорректный email') from None
+def _string(value):
+    if not isinstance(value, str):
+        raise ValueError('ожидается строка')
+    return value
+
+
+def _service_name(value):
+    value = _string(value)
+    if not re.fullmatch(SERVICE_NAME_PATTERN, value):
+        raise ValueError('допустимы только латинские буквы, цифры и дефис')
     return value
 
 
@@ -149,7 +151,7 @@ class _Field:
 
 ACCOUNT_FIELDS = (
     _Field('id', 'id', _identifier),
-    _Field('email', 'email', _email),
+    _Field('email', 'email', _string),
     _Field('balance', 'balance', _money),
     _Field('withdrawBalance', 'withdraw_balance', _money),
     _Field('totalReplenished', 'total_replenished', _money),
@@ -159,7 +161,7 @@ ACCOUNT_FIELDS = (
 
 SERVICE_FIELDS = (
     _Field('id', 'id', _identifier),
-    _Field('name', 'name', _text(255)),
+    _Field('name', 'name', _service_name),
     _Field('ownerId', 'customer_id', _identifier),
     _Field('paymentTerm', 'payment_term', _choice(PaymentTerm)),
     _Field('autoProlong', 'auto_prolong', _boolean),
@@ -171,7 +173,7 @@ SERVICE_FIELDS = (
 
 TRANSACTION_FIELDS = (
     _Field('id', 'id', _identifier),
-    _Field('amount', 'amount', _money),
+    _Field('amount', 'amount', _transaction_amount),
     _Field('status', 'status', _choice(TransactionStatus)),
     _Field('performedAt', 'performed_at', _optional(_datetime)),
     _Field('createdAt', 'created_at', _datetime),
