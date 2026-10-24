@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    @apply bg-[#F4F4F4] font-['Inter'] text-black antialiased dark:bg-black dark:text-white;
+  }
+}
