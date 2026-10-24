@@ -4,24 +4,42 @@
 
 ## Формат снимка исходных данных (`PUT /api/v1/source/snapshot`)
 
-Финальную форму определяют реальные файлы. Рабочая гипотеза:
+Формат совпадает с исходной системой (`test_data/data.json`, схема `test_data/001_schema.up.sql`). Имена полей в camelCase принимаются как есть.
 
 ```json
 {
   "accounts": [
     {"id": 1, "email": "a@b.c", "balance": 12000, "withdrawBalance": 0,
-     "bonusBalance": 500, "bonusState": true, "totalReplenished": 50000}
+     "totalReplenished": 50000, "bonusBalance": 500, "bonusState": "unlocked"}
   ],
   "services": [
-    {"id": 10, "accountId": 1, "name": "VPS-1", "status": "active",
-     "price": 30000, "autoprolong": false, "paymentTerm": "month",
-     "expiresAt": "2026-11-01T00:00:00Z"}
+    {"id": 10, "name": "VPS-1", "ownerId": 1, "paymentTerm": "month",
+     "autoProlong": false, "createdAt": "2026-10-01T00:00:00.000Z",
+     "expiresAt": "2026-11-01T00:00:00.000Z", "status": "active", "price": 30000}
   ],
   "transactions": [
-    {"id": 100, "accountId": 1, "status": "performed", "type": "prolong", "amount": 30000}
+    {"id": 100, "amount": 300, "status": "performed",
+     "performedAt": "2026-10-01T00:05:00.000Z", "createdAt": "2026-10-01T00:00:00.000Z",
+     "type": "prolong", "serviceId": 10}
   ]
 }
 ```
+
+Допустимые значения и правила:
+
+| Поле | Значения / правило |
+|---|---|
+| `accounts[].bonusState` | `locked` (бонусы тратить нельзя), `unlocked` |
+| `services[].status` | `active`, `suspended`, `prolong_wait`, `deleted`, `blocked` |
+| `services[].paymentTerm` | `hour`, `week`, `month`, `quarter_year`, `half_year`, `year` |
+| `transactions[].status` | `performed`, `not_performed` |
+| `transactions[].type` | `prolong`, `order` |
+| Денежные поля | целые числа ≥ 0 в единицах баланса (100 = €1) |
+| `email` | уникален |
+| `services[].ownerId` | ссылается на существующий `accounts[].id` |
+| `transactions[].serviceId` | ссылается на существующий `services[].id` (транзакция привязана к услуге, клиент определяется через услугу) |
+| Даты | ISO 8601 UTC; `expiresAt ≥ createdAt` |
+| `performedAt` | `null` при `not_performed`; обязателен и `≥ createdAt` при `performed` |
 
 Ответ: `{"accounts": N, "services": N, "transactions": N, "recalculated_at": "..."}`.
 Загрузка заменяет данные целиком, в одной транзакции БД (при ошибке валидации ничего не меняется).
