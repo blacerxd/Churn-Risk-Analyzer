@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 import pytest
+from django.db import connection
 
 from customers.importer import ImportResult, SnapshotValidationError, replace_snapshot
 from customers.models import Customer, Service, ServiceStatusEvent, Transaction
@@ -127,11 +128,35 @@ def test_status_history_survives_service_removal():
     ]
 
 
-def test_signal_is_sent_after_commit(received, django_capture_on_commit_callbacks):
-    with django_capture_on_commit_callbacks(execute=False) as callbacks:
-        result = replace_snapshot(snapshot(), now=T1)
-    assert received == []  # до коммита пересчёт не должен стартовать
+def test_signal_is_sent_inside_import_transaction():
+    seen = []
 
-    for callback in callbacks:
-        callback()
-    assert received == [result]
+    def receiver(sender, result, **kwargs):
+        # Получатель (пересчёт) уже видит новые данные и работает в транзакции загрузки.
+        seen.append((connection.in_atomic_block, Customer.objects.count(), result))
+
+    snapshot_replaced.connect(receiver)
+    try:
+        result = replace_snapshot(snapshot(), now=T1)
+    finally:
+        snapshot_replaced.disconnect(receiver)
+
+    assert seen == [(True, 1, result)]
+
+
+def test_receiver_error_rolls_back_import():
+    replace_snapshot(snapshot(), now=T1)
+    before = db_state()
+
+    def failing(sender, **kwargs):
+        raise RuntimeError('пересчёт упал')
+
+    snapshot_replaced.connect(failing)
+    try:
+        with pytest.raises(RuntimeError):
+            replace_snapshot(snapshot(accounts=[account(balance=0)]), now=T2)
+    finally:
+        snapshot_replaced.disconnect(failing)
+
+    assert db_state() == before
+    assert not ServiceStatusEvent.objects.exists()

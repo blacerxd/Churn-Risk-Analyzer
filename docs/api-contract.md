@@ -45,6 +45,7 @@
 
 Ответ: `{"accounts": N, "services": N, "transactions": N, "recalculated_at": "..."}`.
 Загрузка заменяет данные целиком, в одной транзакции БД (при ошибке валидации ничего не меняется).
+В той же транзакции пересчитываются оценки всех клиентов, `recalculated_at` — время этого пересчёта.
 
 ## `GET /api/v1/customers`
 
@@ -102,6 +103,9 @@
 }
 ```
 
+Итоги читаются из последнего пересчёта и на лету не считаются. До первого пересчёта
+`calculated_at` равен `null`, остальные значения — нули.
+
 Для графика (дополнительная функция): `GET /api/v1/analytics/churn-chart?days=30`
 
 ```json
@@ -115,16 +119,39 @@
 
 ```json
 {
-  "weights": {"expiring_no_autoprolong": 40, "insufficient_funds": 30, "prolong_wait": 20},
+  "weights": {"expiring_no_autoprolong": 70, "insufficient_funds": 50,
+              "prolong_wait": 80, "low_payment_success": 20},
   "thresholds": {"medium": 35, "high": 65},
   "params": {"expiry_horizon_days": 7, "use_bonus_balance": true, "loss_horizon_months": 1},
   "schema": {
-    "weights": [{"key": "expiring_no_autoprolong", "title": "...", "description": "...", "min": 0, "max": 100}]
+    "weights": [{"key": "expiring_no_autoprolong", "title": "...", "description": "...",
+                 "type": "number", "default": 70, "min": 0, "max": 100}],
+    "thresholds": [{"key": "medium", "title": "...", "description": "...",
+                    "type": "number", "default": 35, "min": 0, "max": 100}],
+    "params": [{"key": "expiry_horizon_days", "title": "...", "description": "...",
+                "type": "integer", "default": 7, "min": 1, "max": 90},
+               {"key": "use_bonus_balance", "title": "...", "description": "...",
+                "type": "boolean", "default": true}]
   }
 }
 ```
 
-`PATCH` принимает частичный объект, валидирует (веса ≥ 0, `medium < high`), сохраняет, запускает пересчёт и шлёт SSE-событие. `schema` позволяет фронту нарисовать форму без хардкода признаков.
+Вес признака — вероятность ухода в процентах, если причина проявилась полностью (см. `docs/model.md`).
+
+`PATCH` принимает частичный объект, например `{"weights": {"prolong_wait": 90}}`, сохраняет только переданные поля, запускает пересчёт и шлёт SSE-событие. Ответ — действующие настройки в том же формате. Правила проверки:
+
+| Поле | Правило |
+|---|---|
+| `weights.*` | число от 0 до 100, только ключи зарегистрированных признаков; хотя бы один вес больше 0 |
+| `thresholds.medium`, `thresholds.high` | число от 0 до 100, `medium < high` (после применения изменения) |
+| `params.expiry_horizon_days` | целое от 1 до 90 |
+| `params.loss_horizon_months` | целое от 1 до 12 |
+| `params.use_bonus_balance` | `true` или `false` |
+| Прочие ключи (в том числе `schema`) | ошибка «неизвестное поле» |
+
+Ошибки проверки — список `{"path": "weights.prolong_wait", "message": "допустимо от 0 до 100"}`, при ошибке ничего не сохраняется.
+
+`schema` позволяет фронту нарисовать форму без хардкода признаков: тип поля, диапазон и значение по умолчанию (для кнопки «Сбросить»).
 
 ## Аутентификация
 
