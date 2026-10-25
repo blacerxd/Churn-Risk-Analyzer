@@ -7,6 +7,7 @@ from api.views.customers import CustomerDetailView, CustomerListView
 from api.views.events import events
 from api.views.model_settings import ModelSettingsView
 from api.views.passkeys import PasskeyDetailView, PasskeySetupView, PasskeysView
+from api.views.sessions import AdminUserSessionsView, EndOtherSessionsView, SessionDetailView, SessionListView
 from api.views.snapshot import SnapshotView
 
 app_name = 'api'
@@ -17,6 +18,9 @@ urlpatterns = [
     path('auth/login', LoginView.as_view(), name='auth-login'),
     path('auth/me', MeView.as_view(), name='auth-me'),
     path('auth/logout', LogoutView.as_view(), name='auth-logout'),
+    path('auth/sessions', SessionListView.as_view(), name='auth-sessions'),
+    path('auth/sessions/end-others', EndOtherSessionsView.as_view(), name='auth-sessions-end-others'),
+    path('auth/sessions/<int:pk>', SessionDetailView.as_view(), name='auth-session'),
     path('auth/passkeys', PasskeysView.as_view(), name='auth-passkeys'),
     path('auth/passkeys/setup', PasskeySetupView.as_view(), name='auth-passkeys-setup'),
     path('auth/passkeys/<str:credential_id>', PasskeyDetailView.as_view(), name='auth-passkey'),
@@ -28,6 +32,7 @@ urlpatterns = [
     path('events', events, name='events'),
     path('admin/users', AdminUserListView.as_view(), name='admin-users'),
     path('admin/users/<int:pk>', AdminUserDetailView.as_view(), name='admin-user'),
+    path('admin/users/<int:pk>/sessions', AdminUserSessionsView.as_view(), name='admin-user-sessions'),
     path('admin/recalculations', RecalculationListView.as_view(), name='admin-recalculations'),
     path('admin/status-events', StatusEventListView.as_view(), name='admin-status-events'),
     path('source/snapshot', SnapshotView.as_view(), name='source-snapshot'),

@@ -5,7 +5,7 @@ import { apiFetch } from '../lib/api'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
 import type { Me } from '../lib/api'
 import ThemeToggle from './ThemeToggle'
-import { Logo, SidebarPattern } from './brand'
+import { Logo } from './brand'
 import { Icon, IconTile } from './icons'
 import type { IconName } from './icons'
 import { btnGhost, btnGhostIcon } from './styles'
@@ -93,8 +93,6 @@ export default function Layout() {
             </NavLink>
           )}
         </nav>
-        {/* Паттерн брендбука как нижний край меню; в узкой панели (только значки) ему не хватает места */}
-        <SidebarPattern className="mt-auto hidden w-full text-ink opacity-90 lg:block" />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">

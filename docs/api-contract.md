@@ -222,6 +222,11 @@
 |---|---|---|
 | POST | `/api/v1/auth/login` | `{username, password}` → 200 + cookie сессии, 400/401 при ошибке |
 | GET | `/api/v1/auth/me` | 200 `{id, username, first_name, last_name, email, is_staff, is_superuser}` или 401/403 |
+| POST | `/api/v1/auth/logout` | 204, сессия сброшена, сессии в Keycloak завершены |
+| GET | `/api/v1/auth/csrf` | выставляет cookie `csrftoken` (нужен SPA до первого POST) |
+| GET | `/api/v1/auth/sessions` | свои активные сессии: `[{id, device, ip, method: password\|sso, created_at, last_seen_at, current}]`, текущая первой |
+| DELETE | `/api/v1/auth/sessions/{id}` | завершить свою сессию на другом устройстве, 204; текущую — 400 `current_session`, чужую — 404 |
+| POST | `/api/v1/auth/sessions/end-others` | завершить все сессии, кроме текущей, и сессии в Keycloak: `{ended}` |
 | GET | `/api/v1/auth/passkeys` | `{sso_enabled, sso_account, passkeys: [{id, label, created_at}]}` — свои ключи доступа для SSO |
 | POST | `/api/v1/auth/passkeys/setup` | `{url}`: куда отправить браузер, чтобы создать ключ в Keycloak. Без учётной записи SSO нужен `{password}` от панели |
 | DELETE | `/api/v1/auth/passkeys/{id}` | удалить свой ключ, 204 |
@@ -233,8 +238,10 @@
 Через SSO входят только пользователи, заведённые в «Админке»: панель находит их по email
 (провайдер должен его подтвердить) и пускает, если они уже входили по паролю и не заблокированы.
 Новых пользователей SSO не создаёт.
-| POST | `/api/v1/auth/logout` | 204, сессия сброшена |
-| GET | `/api/v1/auth/csrf` | выставляет cookie `csrftoken` (нужен SPA до первого POST) |
+
+Каждый вход запоминается: браузер и система (из User-Agent), IP (первый адрес из
+`X-Forwarded-For`), способ входа, время входа и последней активности (обновляется не чаще раза в минуту).
+Список показывает только живые сессии: истёкшие убираются при запросе.
 
 ## SSE: `GET /api/v1/events`
 
@@ -250,6 +257,7 @@
 | GET | `/api/v1/admin/users?search=` | пользователи: `id, username, first_name, last_name, email, is_active, is_staff, is_superuser, date_joined, last_login` |
 | POST | `/api/v1/admin/users` | создать: `{username, first_name, last_name, email, password}`; email обязателен и уникален, пароль проверяется валидаторами Django. При включённом SSO пользователь сразу создаётся и в Keycloak |
 | GET, PATCH | `/api/v1/admin/users/{id}` | изменить `is_active`, `is_staff`, `email`, задать новый `password`. Удаления нет, только блокировка |
+| GET, DELETE | `/api/v1/admin/users/{id}/sessions` | активные сессии пользователя; DELETE завершает все (и в Keycloak), `{ended}`. Свои — 400, суперпользователя может только суперпользователь |
 | GET | `/api/v1/admin/recalculations` | история пересчётов: `reason`, `calculated_at`, `duration_seconds`, `by_level`, `score_avg`, деньги |
 | GET | `/api/v1/admin/status-events?new_status=&customer_id=&service_id=` | журнал смен статусов услуг |
 

@@ -145,6 +145,16 @@ export interface Passkeys {
   passkeys: Passkey[]
 }
 
+export interface UserSession {
+  id: number
+  device: string
+  ip: string | null
+  method: 'password' | 'sso'
+  created_at: string
+  last_seen_at: string
+  current: boolean
+}
+
 export interface Page<T> {
   count: number
   page: number
@@ -199,6 +209,7 @@ export const queryKeys = {
   recalculations: ['recalculations'] as const,
   statusEvents: ['status-events'] as const,
   passkeys: ['passkeys'] as const,
+  sessions: ['sessions'] as const,
 }
 
 const API_ROOT = '/api/v1'

@@ -185,6 +185,9 @@ function UserRow({ user, me }: { user: AdminUser; me: Me }) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers })
     },
   })
+  const signOut = useMutation({
+    mutationFn: () => apiFetch<{ ended: number }>(`/admin/users/${user.id}/sessions`, { method: 'DELETE' }),
+  })
 
   const isSelf = user.id === me.id
   // The same rules the API enforces, so the buttons only offer what will work
@@ -228,6 +231,19 @@ function UserRow({ user, me }: { user: AdminUser; me: Me }) {
                   {user.is_staff ? 'Снять админа' : 'Выдать админа'}
                 </button>
               )}
+              {!isSelf && (
+                <button
+                  type="button"
+                  className={`${actionClass} ${actionIdle}`}
+                  disabled={signOut.isPending}
+                  title="Выйти на всех устройствах пользователя"
+                  onClick={() => {
+                    if (window.confirm(`Завершить все сессии ${user.username}? Пользователю придётся войти заново.`)) signOut.mutate()
+                  }}
+                >
+                  {signOut.isSuccess ? `Завершено: ${signOut.data.ended}` : 'Завершить сессии'}
+                </button>
+              )}
               <button
                 type="button"
                 className={`${actionClass} ${settingPassword ? actionActive : actionIdle}`}
@@ -240,7 +256,7 @@ function UserRow({ user, me }: { user: AdminUser; me: Me }) {
           )}
         </td>
       </tr>
-      {(settingPassword || update.isError) && (
+      {(settingPassword || update.isError || signOut.isError) && (
         <tr>
           <td colSpan={5} className="bg-neutral-50 px-4 py-3 dark:bg-neutral-950">
             {settingPassword && (
@@ -267,9 +283,9 @@ function UserRow({ user, me }: { user: AdminUser; me: Me }) {
                 </button>
               </form>
             )}
-            {update.isError && (
+            {(update.isError || signOut.isError) && (
               <p role="alert" className="mt-2 text-sm font-medium text-red-500">
-                {errorText(update.error)}
+                {errorText(update.error ?? signOut.error)}
               </p>
             )}
           </td>

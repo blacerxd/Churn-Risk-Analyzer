@@ -5,4 +5,4 @@ class ApiConfig(AppConfig):
     name = 'api'
 
     def ready(self):
-        from api import receivers  # noqa: F401
+        from api import receivers, sessions  # noqa: F401

@@ -6,7 +6,7 @@ import { Icon, IconTile } from '../components/icons'
 import { ErrorState, PageHeader, Skeleton, Toast } from '../components/ui'
 import { btnGhost, btnPrimary, cardClass, headingClass, inputClass, labelClass, mutedClass } from '../components/styles'
 import { ApiError, apiFetch, queryKeys } from '../lib/api'
-import type { Me, Passkeys } from '../lib/api'
+import type { Me, Passkeys, UserSession } from '../lib/api'
 import { formatDateTime } from '../lib/format'
 
 function errorText(error: unknown): string {
@@ -130,6 +130,93 @@ function PasskeySection() {
   )
 }
 
+function SessionsSection() {
+  const queryClient = useQueryClient()
+  const { data, isPending, isError, error, refetch } = useQuery({
+    queryKey: queryKeys.sessions,
+    queryFn: () => apiFetch<UserSession[]>('/auth/sessions'),
+  })
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: queryKeys.sessions })
+
+  const end = useMutation({
+    mutationFn: (id: number) => apiFetch(`/auth/sessions/${id}`, { method: 'DELETE' }),
+    onSuccess: refresh,
+  })
+  const endOthers = useMutation({
+    mutationFn: () => apiFetch<{ ended: number }>('/auth/sessions/end-others', { method: 'POST' }),
+    onSuccess: refresh,
+  })
+
+  if (isPending) return <Skeleton className="h-40 w-full !rounded-card" />
+  if (isError) return <ErrorState message={errorText(error)} onRetry={() => void refetch()} />
+
+  const others = data.filter((session) => !session.current).length
+
+  return (
+    <section className={`${cardClass} flex flex-col gap-5`} aria-labelledby="sessions-title">
+      <div className="flex flex-wrap items-start gap-4">
+        <IconTile name="stack" />
+        <div className="mr-auto">
+          <h2 id="sessions-title" className={`${headingClass} text-lg`}>
+            Активные сессии
+          </h2>
+          <p className={`${mutedClass} mt-1 max-w-2xl`}>
+            Устройства, на которых выполнен вход в панель. Если какое-то вам незнакомо, завершите его сессию и смените пароль.
+          </p>
+        </div>
+        {others > 0 && (
+          <button
+            type="button"
+            className={btnGhost}
+            disabled={endOthers.isPending}
+            onClick={() => {
+              if (window.confirm('Выйти на всех других устройствах? Вход через SSO там тоже придётся пройти заново.')) endOthers.mutate()
+            }}
+          >
+            <Icon name="logout" />
+            Завершить все другие
+          </button>
+        )}
+      </div>
+
+      <ul className="flex flex-col divide-y divide-line rounded-panel border border-line">
+        {data.map((session) => (
+          <li key={session.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <div className="mr-auto">
+              <div className="flex flex-wrap items-center gap-2 font-sans text-sm font-semibold text-ink">
+                {session.device}
+                {session.current && <span className="rounded-key bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">Это устройство</span>}
+              </div>
+              <div className={`${mutedClass} text-xs`}>
+                {[
+                  session.ip,
+                  session.method === 'sso' ? 'вход через SSO' : 'вход по паролю',
+                  `вошли ${formatDateTime(session.created_at)}`,
+                  !session.current && `активность ${formatDateTime(session.last_seen_at)}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </div>
+            </div>
+            {!session.current && (
+              <button type="button" className={btnGhost} disabled={end.isPending} onClick={() => end.mutate(session.id)}>
+                <Icon name="close" />
+                Завершить
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      {(end.isError || endOthers.isError) && (
+        <p role="alert" className="font-sans text-sm font-semibold text-warn">
+          {errorText(end.error ?? endOthers.error)}
+        </p>
+      )}
+    </section>
+  )
+}
+
 export default function Profile() {
   const me = useOutletContext<Me>()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -156,6 +243,8 @@ export default function Profile() {
       </section>
 
       <PasskeySection />
+
+      <SessionsSection />
 
       {result === 'added' && <Toast>Ключ доступа добавлен: теперь можно входить через SSO</Toast>}
       {result === 'cancelled' && <Toast>Ключ не добавлен. Можно попробовать ещё раз или с другого устройства</Toast>}

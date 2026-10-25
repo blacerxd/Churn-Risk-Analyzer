@@ -190,6 +190,53 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdminUser'
           description: ''
+  /api/v1/admin/users/{id}/sessions:
+    get:
+      operationId: api_v1_admin_users_sessions_list
+      summary: Сессии пользователя
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - administration
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSession'
+          description: ''
+    delete:
+      operationId: api_v1_admin_users_sessions_destroy
+      description: Пользователь выходит на всех устройствах, в том числе из Keycloak.
+        Свои сессии так не завершить.
+      summary: Завершить все сессии пользователя
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - administration
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EndedSessions'
+          description: ''
+        '400':
+          description: Свою учётную запись — через профиль
   /api/v1/analytics/churn-chart:
     get:
       operationId: api_v1_analytics_churn_chart_retrieve
@@ -391,6 +438,63 @@ paths:
           description: ''
         '400':
           description: Нужен пароль или он неверный
+  /api/v1/auth/sessions:
+    get:
+      operationId: api_v1_auth_sessions_list
+      summary: Мои активные сессии
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSession'
+          description: ''
+  /api/v1/auth/sessions/{id}:
+    delete:
+      operationId: api_v1_auth_sessions_destroy
+      description: Завершает свою сессию на другом устройстве. Текущую завершает выход
+        (`auth/logout`).
+      summary: Завершить сессию
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          description: Это текущая сессия
+        '404':
+          description: Нет такой сессии
+  /api/v1/auth/sessions/end-others:
+    post:
+      operationId: api_v1_auth_sessions_end_others_create
+      description: Заодно завершает сессии в Keycloak, чтобы с тех устройств нельзя
+        было вернуться через SSO без ключа.
+      summary: Завершить все сессии, кроме текущей
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EndedSessions'
+          description: ''
   /api/v1/customers:
     get:
       operationId: customers_list
@@ -843,6 +947,14 @@ components:
       - payment_term
       - price_cents
       - status
+    EndedSessions:
+      type: object
+      properties:
+        ended:
+          type: integer
+          description: Сколько сессий завершено
+      required:
+      - ended
     Factor:
       type: object
       properties:
@@ -916,6 +1028,14 @@ components:
       required:
       - password
       - username
+    MethodEnum:
+      enum:
+      - password
+      - sso
+      type: string
+      description: |-
+        * `password` - password
+        * `sso` - sso
     ModelSettings:
       type: object
       properties:
@@ -1407,6 +1527,44 @@ components:
       - is_superuser
       - last_name
       - username
+    UserSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        device:
+          type: string
+          description: Браузер и система, например «Chrome · Windows»
+        ip:
+          type: string
+          nullable: true
+        method:
+          allOf:
+          - $ref: '#/components/schemas/MethodEnum'
+          description: |-
+            Как выполнен вход
+
+            * `password` - password
+            * `sso` - sso
+        created_at:
+          type: string
+          format: date-time
+          description: Когда выполнен вход
+        last_seen_at:
+          type: string
+          format: date-time
+          description: Последняя активность, с точностью до минуты
+        current:
+          type: boolean
+          description: Это сессия, из которой сделан запрос
+      required:
+      - created_at
+      - current
+      - device
+      - id
+      - ip
+      - last_seen_at
+      - method
   securitySchemes:
     cookieAuth:
       type: apiKey

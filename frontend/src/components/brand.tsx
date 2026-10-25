@@ -46,18 +46,3 @@ export function BrandPattern({ className = '', inverse = false }: { className?: 
     </span>
   )
 }
-
-/**
- * Sidebar edge: three straight accent lines and one turning in the text color (black in the light
- * theme, white in the dark one). Drawn inline so the line weight matches the menu at any width.
- */
-export function SidebarPattern({ className = '', strokeWidth = 8 }: { className?: string; strokeWidth?: number }) {
-  return (
-    <svg viewBox="0 0 240 160" fill="none" strokeLinecap="round" strokeWidth={strokeWidth} aria-hidden="true" className={className}>
-      <path d="M0 20H240" stroke="#4CC6F1" />
-      <path d="M0 52H240" stroke="#4CC6F1" />
-      <path d="M0 84H240" stroke="#4CC6F1" />
-      <path d="M0 116H150Q172 116 172 138V160" stroke="currentColor" />
-    </svg>
-  )
-}

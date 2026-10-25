@@ -327,3 +327,17 @@ class PasskeySetupSerializer(serializers.Serializer):
 
 class PasskeySetupResultSerializer(serializers.Serializer):
     url = serializers.CharField(help_text='Куда перейти браузеру')
+
+
+class UserSessionSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    device = serializers.CharField(help_text='Браузер и система, например «Chrome · Windows»')
+    ip = serializers.CharField(allow_null=True)
+    method = serializers.ChoiceField(['password', 'sso'], help_text='Как выполнен вход')
+    created_at = serializers.DateTimeField(help_text='Когда выполнен вход')
+    last_seen_at = serializers.DateTimeField(help_text='Последняя активность, с точностью до минуты')
+    current = serializers.BooleanField(help_text='Это сессия, из которой сделан запрос')
+
+
+class EndedSessionsSerializer(serializers.Serializer):
+    ended = serializers.IntegerField(help_text='Сколько сессий завершено')
