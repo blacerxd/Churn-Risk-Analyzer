@@ -9,7 +9,7 @@ import { ApiError, apiFetch, queryKeys } from '../lib/api'
 import type { CustomersPage, RiskLevel } from '../lib/api'
 import { LEVEL_LABEL, formatEuro, formatInt } from '../lib/format'
 
-type SortKey = 'id' | 'email' | 'balance' | 'total_replenished' | 'score'
+type SortKey = 'id' | 'email' | 'balance' | 'total_replenished' | 'score' | 'level' | 'expected_loss'
 
 const DEFAULT_ORDERING = '-score'
 const DEFAULT_PAGE_SIZE = 25
@@ -74,7 +74,7 @@ export default function Customers() {
   query.set('page', String(page))
   query.set('page_size', String(pageSize))
 
-  const { data, isPending, isError, error, refetch, isFetching } = useQuery({
+  const { data, isPending, isError, error, refetch, isFetching, isPlaceholderData } = useQuery({
     queryKey: [...queryKeys.customers, query.toString()],
     queryFn: () => apiFetch<CustomersPage>(`/customers?${query.toString()}`),
     placeholderData: keepPreviousData,
@@ -107,12 +107,18 @@ export default function Customers() {
   const from = data && data.count > 0 ? (data.page - 1) * data.page_size + 1 : 0
   const to = data ? Math.min(data.page * data.page_size, data.count) : 0
 
-  const columns: Array<{ key: SortKey; title: string; align?: 'right' }> = [
-    { key: 'id', title: 'ID' },
-    { key: 'email', title: 'Email' },
-    { key: 'balance', title: 'Баланс', align: 'right' },
-    { key: 'total_replenished', title: 'Пополнения', align: 'right' },
-    { key: 'score', title: 'Score' },
+  // Порядок совпадает с ячейками строки. Без sort — колонка не сортируется.
+  // Причина — отдельной колонкой только на широком экране, иначе второй строкой под email:
+  // так «Ожидаемая потеря» видна без горизонтальной прокрутки.
+  const columns: Array<{ title: string; sort?: SortKey; align?: 'right'; className?: string }> = [
+    { title: 'ID', sort: 'id' },
+    { title: 'Email', sort: 'email' },
+    { title: 'Баланс', sort: 'balance', align: 'right' },
+    { title: 'Пополнения', sort: 'total_replenished', align: 'right' },
+    { title: 'Score', sort: 'score' },
+    { title: 'Уровень', sort: 'level' },
+    { title: 'Главная причина', className: 'hidden 2xl:table-cell' },
+    { title: 'Ожидаемая потеря', sort: 'expected_loss', align: 'right' },
   ]
 
   return (
@@ -135,6 +141,25 @@ export default function Customers() {
           />
         </div>
 
+        {/* Уже 1280 px таблица не помещается, вместо неё карточки — сортировка выбирается списком */}
+        <label className="flex items-center gap-2 whitespace-nowrap text-sm text-muted xl:hidden">
+          Сортировка
+          <select
+            value={ordering}
+            onChange={(event) => updateParams({ ordering: event.target.value === DEFAULT_ORDERING ? null : event.target.value, page: null })}
+            className={inputClass({ size: 'w-full min-h-11' })}
+          >
+            {columns.flatMap((column) =>
+              column.sort
+                ? [
+                    <option key={`-${column.sort}`} value={`-${column.sort}`}>{`${column.title} ↓`}</option>,
+                    <option key={column.sort} value={column.sort}>{`${column.title} ↑`}</option>,
+                  ]
+                : [],
+            )}
+          </select>
+        </label>
+
         <div className="flex flex-wrap gap-2" role="group" aria-label="Фильтр по уровню риска">
           {LEVEL_FILTERS.map((item) => {
             const active = level === item
@@ -156,42 +181,50 @@ export default function Customers() {
       {isError && <ErrorState message={error instanceof ApiError ? error.message : 'Попробуйте обновить страницу'} onRetry={() => void refetch()} />}
 
       {!isError && (
-        <section className={`${cardBase} overflow-hidden`} aria-busy={isFetching}>
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[1040px] border-collapse">
+        // Пока новый ответ не пришёл, показан прошлый список — приглушаем его, чтобы не выглядел результатом нового фильтра.
+        <section className={`${cardBase} overflow-hidden transition-opacity ${isPlaceholderData ? 'opacity-50' : ''}`} aria-busy={isFetching}>
+          <div className="hidden overflow-x-auto xl:block">
+            <table className="w-full min-w-[880px] border-collapse">
               <thead>
                 <tr className="bg-surface-2">
                   {columns.map((column) => {
-                    const active = sortColumn === column.key
+                    const headClass = `${tableHeadClass} border-b border-line ${column.align === 'right' ? 'text-right' : ''} ${column.className ?? ''}`
+                    if (!column.sort) {
+                      return (
+                        <th key={column.title} scope="col" className={headClass}>
+                          {column.title}
+                        </th>
+                      )
+                    }
+                    const sortKey = column.sort
+                    const active = sortColumn === sortKey
                     const direction = active ? sortDirection : null
                     return (
                       <th
-                        key={column.key}
+                        key={column.title}
                         scope="col"
                         aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'}
-                        className={`${tableHeadClass} border-b border-line ${column.align === 'right' ? 'text-right' : ''}`}
+                        className={headClass}
                       >
                         <button
                           type="button"
-                          onClick={() => toggleSort(column.key)}
-                          className={`inline-flex min-h-8 items-center gap-1 rounded uppercase tracking-[0.06em] hover:text-ink ${active ? 'text-ink' : ''}`}
+                          onClick={() => toggleSort(sortKey)}
+                          className={`inline-flex min-h-8 items-center gap-1 rounded uppercase tracking-[0.06em] hover:text-ink ${column.align === 'right' ? 'text-right' : 'text-left'} ${active ? 'text-ink' : ''}`}
                         >
-                          {column.title}
+                          {/* Длинный заголовок переносится, а не раздвигает таблицу за край карточки */}
+                          <span className="whitespace-normal">{column.title}</span>
                           <SortIndicator direction={direction} />
                         </button>
                       </th>
                     )
                   })}
-                  <th scope="col" className={`${tableHeadClass} border-b border-line`}>Уровень</th>
-                  <th scope="col" className={`${tableHeadClass} border-b border-line`}>Главная причина</th>
-                  <th scope="col" className={`${tableHeadClass} border-b border-line text-right`}>Ожидаемая потеря</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line text-sm">
                 {isPending &&
                   Array.from({ length: 8 }, (_, index) => (
                     <tr key={index}>
-                      <td colSpan={8} className="px-4 py-3">
+                      <td colSpan={columns.length} className="px-4 py-3">
                         <Skeleton className="h-8 w-full" />
                       </td>
                     </tr>
@@ -206,18 +239,21 @@ export default function Customers() {
                     className="h-16 cursor-pointer transition-colors hover:bg-hover focus-visible:bg-hover focus-visible:outline-offset-[-2px]"
                   >
                     <td className="px-4 py-3 font-semibold tabular-nums">{customer.id}</td>
-                    <td className="max-w-[240px] truncate px-4 py-3 font-semibold" title={customer.email}>
-                      {customer.email}
+                    <td className="max-w-[260px] px-4 py-3">
+                      <span className="block truncate font-semibold" title={customer.email}>
+                        {customer.email}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-muted 2xl:hidden">{customer.top_reason}</span>
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatEuro(customer.balance_cents)}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-muted">{formatEuro(customer.total_replenished_cents)}</td>
                     <td className="px-4 py-3">
-                      <ScoreBar customer={customer} />
+                      <ScoreBar customer={customer} barClass="w-12 flex-none 2xl:w-20" />
                     </td>
                     <td className="px-4 py-3">
                       <RiskBadge level={customer.level} />
                     </td>
-                    <td className="max-w-[320px] px-4 py-3 text-muted">{customer.top_reason}</td>
+                    <td className="hidden max-w-[320px] px-4 py-3 text-muted 2xl:table-cell">{customer.top_reason}</td>
                     <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatEuro(customer.expected_loss_cents)}</td>
                   </tr>
                 ))}
@@ -225,8 +261,8 @@ export default function Customers() {
             </table>
           </div>
 
-          {/* Мобильная версия: таблица превращается в карточки */}
-          <ul className="flex flex-col gap-3 p-4 md:hidden">
+          {/* Уже 1280 px таблица превращается в карточки */}
+          <ul className="flex flex-col gap-3 p-4 xl:hidden">
             {isPending &&
               Array.from({ length: 5 }, (_, index) => (
                 <li key={index}>

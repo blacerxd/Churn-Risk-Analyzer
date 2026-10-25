@@ -84,7 +84,7 @@
 |---|---|
 | `level` | `high`, `medium`, `low`, `none` |
 | `search` | часть email без учёта регистра |
-| `ordering` | `id`, `email`, `balance`, `total_replenished`, `score`, `expected_loss`, с `-` по убыванию. По умолчанию `-score`. Клиенты без оценки всегда в конце |
+| `ordering` | `id`, `email`, `balance`, `total_replenished`, `score`, `level`, `expected_loss`, с `-` по убыванию. По умолчанию `-score`. `level` упорядочен по смыслу (`-level`: высокий → средний → низкий), внутри уровня — по `score` в том же направлении; `expected_loss` при равной потере — тоже по `score`. Клиенты без оценки при сортировке по `score`, `level` и `expected_loss` всегда в конце |
 | `page`, `page_size` | по умолчанию 1 и 25, `page_size` не больше 100 |
 
 Недопустимое значение `level` или `ordering` — 400 `invalid` с полем в `errors`, страница за пределами списка — 404 `not_found`.

@@ -176,7 +176,7 @@ Keycloak доступен через тот же nginx по пути `/kc`, на
 | `DJANGO_SECRET_KEY` | Секретный ключ Django, на сервере — случайная строка |
 | `DJANGO_DEBUG` | `true` только для разработки |
 | `DJANGO_ALLOWED_HOSTS` | Домены, по которым открывается сайт, через запятую |
-| `DJANGO_CSRF_TRUSTED_ORIGINS` | Те же адреса со схемой, например `https://example.com` |
+| `DJANGO_CSRF_TRUSED_ORIGINS` | Те же адреса со схемой, например `https://example.com` |
 | `DJANGO_SECURE_COOKIES` | `true`, если сайт открывается по HTTPS |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | База данных |
 | `POSTGRES_HOST`, `POSTGRES_PORT` | Для запуска backend без Docker, в Compose подставляются сами |

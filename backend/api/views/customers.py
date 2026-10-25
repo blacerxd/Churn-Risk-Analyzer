@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db.models import BigIntegerField, CharField, F, TextField, Value
+from django.db.models import BigIntegerField, Case, CharField, F, IntegerField, TextField, Value, When
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -29,6 +29,24 @@ def with_risk(queryset):
         top_reason=Coalesce('risk__top_reason', Value(NO_DATA_REASON, output_field=TextField())),
         expected_loss=Coalesce('risk__expected_loss', Value(0, output_field=BigIntegerField())),
     )
+
+
+# Levels sort by severity, not alphabetically. `none` has no rank (NULL),
+# so unscored customers go last, the same as with score ordering.
+LEVEL_RANK = Case(
+    When(risk__level=RiskLevel.HIGH.value, then=Value(3)),
+    When(risk__level=RiskLevel.MEDIUM.value, then=Value(2)),
+    When(risk__level=RiskLevel.LOW.value, then=Value(1)),
+    default=Value(None),
+    output_field=IntegerField(),
+)
+
+# Unscored customers have a zero loss; NULL keeps them last as with score and level.
+SCORED_LOSS = Case(
+    When(risk__score__isnull=False, then=F('risk__expected_loss')),
+    default=Value(None),
+    output_field=BigIntegerField(),
+)
 
 
 def whole_days(delta):
@@ -70,12 +88,19 @@ class CustomerListView(APIView):
     @staticmethod
     def _ordering(value):
         field = value.lstrip('-')
-        expression = F(field)
-        if value.startswith('-'):
-            expression = expression.desc(nulls_last=True)
-        else:
-            expression = expression.asc(nulls_last=True)
-        return [expression, 'id'] if field != 'id' else [expression]
+        descending = value.startswith('-')
+
+        def directed(expression):
+            return expression.desc(nulls_last=True) if descending else expression.asc(nulls_last=True)
+
+        if field == 'id':
+            return [directed(F('id'))]
+        if field == 'level':
+            # Within a level, by score in the same direction.
+            return [directed(LEVEL_RANK), directed(F('score')), 'id']
+        if field == 'expected_loss':
+            return [directed(SCORED_LOSS), directed(F('score')), 'id']
+        return [directed(F(field)), 'id']
 
 
 class CustomerDetailView(APIView):

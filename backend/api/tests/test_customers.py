@@ -104,6 +104,32 @@ def test_ordering(auth_client, portfolio, ordering, expected):
     assert ids(auth_client.get(URL, {'ordering': ordering})) == expected
 
 
+@pytest.mark.parametrize('ordering', ['-level', 'level'])
+def test_ordering_by_level_is_by_severity(auth_client, portfolio, ordering):
+    RiskAssessment.objects.filter(customer_id=2).delete()
+    rank = {'high': 3, 'medium': 2, 'low': 1}
+
+    rows = auth_client.get(URL, {'ordering': ordering}).json()['results']
+
+    scored = [(rank[row['level']], row['score']) for row in rows if row['level'] != 'none']
+    assert scored == sorted(scored, reverse=ordering.startswith('-'))
+    # unscored customers go last in both directions
+    assert [row['level'] for row in rows[len(scored):]] == ['none'] * (len(rows) - len(scored))
+    assert len(scored) < len(rows)
+
+
+@pytest.mark.parametrize('ordering', ['-expected_loss', 'expected_loss'])
+def test_ordering_by_expected_loss_keeps_unscored_last(auth_client, portfolio, ordering):
+    RiskAssessment.objects.filter(customer_id=2).delete()
+
+    rows = auth_client.get(URL, {'ordering': ordering}).json()['results']
+
+    scored = [(row['expected_loss_cents'], row['score']) for row in rows if row['score'] is not None]
+    assert scored == sorted(scored, reverse=ordering.startswith('-'))
+    assert all(row['score'] is None for row in rows[len(scored):])
+    assert len(scored) < len(rows)
+
+
 def test_pagination(auth_client, portfolio):
     response = auth_client.get(URL, {'ordering': 'id', 'page': 2, 'page_size': 2})
 

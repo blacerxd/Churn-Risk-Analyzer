@@ -45,7 +45,7 @@ class SnapshotErrorSerializer(serializers.Serializer):
 
 
 LEVEL_CHOICES = ['high', 'medium', 'low', 'none']
-CUSTOMER_ORDERING = ['id', 'email', 'balance', 'total_replenished', 'score', 'expected_loss']
+CUSTOMER_ORDERING = ['id', 'email', 'balance', 'total_replenished', 'score', 'level', 'expected_loss']
 
 
 class CustomerListQuerySerializer(serializers.Serializer):
