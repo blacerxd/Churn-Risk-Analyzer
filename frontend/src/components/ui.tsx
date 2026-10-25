@@ -104,11 +104,20 @@ export function Toast({ children }: { children: ReactNode }) {
 }
 
 // Score: число и тонкая полоса.
-export function ScoreBar({ customer, showLoss = false }: { customer: CustomerRow; showLoss?: boolean }) {
+// barClass задаёт ширину полосы целиком: в плотной таблице клиентов она короче.
+export function ScoreBar({
+  customer,
+  showLoss = false,
+  barClass = 'w-20 flex-1 md:w-20 md:flex-none',
+}: {
+  customer: CustomerRow
+  showLoss?: boolean
+  barClass?: string
+}) {
   return (
     <span className="flex items-center gap-2.5">
       <strong className="min-w-11 font-sans text-sm tabular-nums">{formatScore(customer.score)}</strong>
-      <span className="flex h-1.5 w-20 flex-1 overflow-hidden rounded-full bg-track md:w-20 md:flex-none" aria-hidden="true">
+      <span className={`flex h-1.5 overflow-hidden rounded-full bg-track ${barClass}`} aria-hidden="true">
         <span className={`h-full rounded-full ${LEVEL_BAR_CLASS[customer.level]}`} style={{ width: `${customer.score ?? 0}%` }} />
       </span>
       {showLoss && <strong className="font-sans text-sm tabular-nums">{formatEuro(customer.expected_loss_cents)}</strong>}

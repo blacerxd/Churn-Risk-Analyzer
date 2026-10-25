@@ -59,6 +59,8 @@ function validateSettings(patch: ModelSettingsPatch) {
   return errors
 }
 
+const LEVEL_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 }
+
 export const handlers = [
   http.get(`${API}/auth/csrf`, () => {
     document.cookie = 'csrftoken=msw-token; path=/'
@@ -132,6 +134,9 @@ export const handlers = [
       balance: (row) => row.balance_cents,
       total_replenished: (row) => row.total_replenished_cents,
       score: (row) => row.score,
+      // Как на сервере: уровень по тяжести, внутри уровня по score; без оценки — в конце.
+      level: (row) => (row.level === 'none' ? null : LEVEL_RANK[row.level] * 1000 + (row.score ?? 0)),
+      expected_loss: (row) => (row.level === 'none' ? null : row.expected_loss_cents),
     }
     const getter = pick[column] ?? pick.score
     rows = [...rows].sort((a, b) => {
