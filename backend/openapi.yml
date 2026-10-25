@@ -420,12 +420,14 @@ paths:
           - balance
           - total_replenished
           - score
+          - level
           - expected_loss
           - -id
           - -email
           - -balance
           - -total_replenished
           - -score
+          - -level
           - -expected_loss
           type: string
           default: -score
@@ -436,12 +438,14 @@ paths:
           * `balance` - balance
           * `total_replenished` - total_replenished
           * `score` - score
+          * `level` - level
           * `expected_loss` - expected_loss
           * `-id` - -id
           * `-email` - -email
           * `-balance` - -balance
           * `-total_replenished` - -total_replenished
           * `-score` - -score
+          * `-level` - -level
           * `-expected_loss` - -expected_loss
       - in: query
         name: page
