@@ -200,7 +200,9 @@ class ServiceStatusEvent(models.Model):
         ordering = ['detected_at', 'id']
         indexes = [
             # График фактов: сколько услуг перешло в статус за день.
-            models.Index(fields=['new_status', 'detected_at'], name='status_event_new_detected_idx'),
+            models.Index(
+                fields=['new_status', 'detected_at'], name='status_event_new_detected_idx',
+            ),
             models.Index(fields=['service_id'], name='status_event_service_idx'),
         ]
         constraints = [

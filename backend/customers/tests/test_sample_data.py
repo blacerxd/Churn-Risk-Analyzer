@@ -5,7 +5,7 @@ from io import StringIO
 
 import pytest
 from django.conf import settings
-from django.core.management import call_command
+from django.core.management import CommandError, call_command
 
 from customers.importer import ImportResult
 from customers.models import Customer, Service, ServiceStatusEvent
@@ -125,3 +125,12 @@ def test_command():
 
     assert 'клиентов 22, услуг 42' in out.getvalue()
     assert Customer.objects.count() == 22
+
+
+@pytest.mark.django_db
+def test_command_reports_missing_data_dir(settings, tmp_path):
+    settings.SAMPLE_DATA_DIR = tmp_path
+
+    with pytest.raises(CommandError, match='Не удалось загрузить набор'):
+        call_command('load_sample', stdout=StringIO())
+    assert not Customer.objects.exists()
