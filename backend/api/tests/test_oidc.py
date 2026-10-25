@@ -25,6 +25,7 @@ OIDC = override_settings(
     LOGIN_REDIRECT_URL='/',
     LOGIN_REDIRECT_URL_FAILURE='/login?error=sso',
     OIDC_CREATE_USER=False,
+    OIDC_AUTH_REQUEST_EXTRA_PARAMS={'prompt': 'login'},
 )
 CLAIMS = {'sub': '1', 'email': 'analyst@example.test', 'email_verified': True}
 
@@ -61,6 +62,8 @@ def test_login_redirects_to_provider(client):
     assert query['client_id'] == ['churn-panel']
     assert query['redirect_uri'] == ['http://testserver/api/v1/auth/oidc/callback']
     assert query['code_challenge_method'] == ['S256']
+    # the passkey is asked every time, even with a live Keycloak session
+    assert query['prompt'] == ['login']
     assert query['state']
 
 
@@ -144,3 +147,24 @@ def test_password_login_still_works(api_client, user):
     )
 
     assert response.status_code == 200
+
+
+def test_logout_ends_keycloak_sessions(api_client, user, settings):
+    settings.OIDC_ENABLED = True
+    settings.KEYCLOAK_PROVISIONER_SECRET = 'secret'
+    api_client.force_authenticate(user)
+    with patch('api.keycloak.logout_user') as kc_logout:
+        response = api_client.post('/api/v1/auth/logout')
+
+    assert response.status_code == 204
+    kc_logout.assert_called_once_with('analyst')
+
+
+def test_logout_works_when_keycloak_is_down(api_client, user, settings):
+    from api import keycloak
+
+    settings.OIDC_ENABLED = True
+    settings.KEYCLOAK_PROVISIONER_SECRET = 'secret'
+    api_client.force_authenticate(user)
+    with patch('api.keycloak.logout_user', side_effect=keycloak.KeycloakError('Keycloak недоступен')):
+        assert api_client.post('/api/v1/auth/logout').status_code == 204

@@ -126,8 +126,23 @@ export interface AuthConfig {
 export interface Me {
   id: number
   username: string
+  first_name: string
+  last_name: string
+  email: string
   is_staff: boolean
   is_superuser: boolean
+}
+
+export interface Passkey {
+  id: string
+  label: string
+  created_at: string | null
+}
+
+export interface Passkeys {
+  sso_enabled: boolean
+  sso_account: boolean
+  passkeys: Passkey[]
 }
 
 export interface Page<T> {
@@ -183,6 +198,7 @@ export const queryKeys = {
   adminUsers: ['admin-users'] as const,
   recalculations: ['recalculations'] as const,
   statusEvents: ['status-events'] as const,
+  passkeys: ['passkeys'] as const,
 }
 
 const API_ROOT = '/api/v1'

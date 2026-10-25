@@ -6,6 +6,7 @@ from api.views.auth import AuthConfigView, CsrfView, LoginView, LogoutView, MeVi
 from api.views.customers import CustomerDetailView, CustomerListView
 from api.views.events import events
 from api.views.model_settings import ModelSettingsView
+from api.views.passkeys import PasskeyDetailView, PasskeySetupView, PasskeysView
 from api.views.snapshot import SnapshotView
 
 app_name = 'api'
@@ -16,6 +17,9 @@ urlpatterns = [
     path('auth/login', LoginView.as_view(), name='auth-login'),
     path('auth/me', MeView.as_view(), name='auth-me'),
     path('auth/logout', LogoutView.as_view(), name='auth-logout'),
+    path('auth/passkeys', PasskeysView.as_view(), name='auth-passkeys'),
+    path('auth/passkeys/setup', PasskeySetupView.as_view(), name='auth-passkeys-setup'),
+    path('auth/passkeys/<str:credential_id>', PasskeyDetailView.as_view(), name='auth-passkey'),
     path('customers', CustomerListView.as_view(), name='customer-list'),
     path('customers/<int:pk>', CustomerDetailView.as_view(), name='customer-detail'),
     path('analytics/summary', SummaryView.as_view(), name='analytics-summary'),

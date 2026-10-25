@@ -73,3 +73,21 @@ def test_conflict_is_reported(kc, anna):
 
     with pytest.raises(keycloak.KeycloakError, match='уже есть'):
         keycloak.create_user(anna, 'Long-pass-123')
+
+
+def test_logout_user_ends_sessions(kc):
+    _, call = kc
+    call.side_effect = [response(body=[{'id': 'kc-1'}]), response(204)]
+
+    keycloak.logout_user('anna')
+
+    assert call.call_args.args == ('POST', 'http://kc/admin/realms/churn/users/kc-1/logout')
+
+
+def test_logout_user_missing_in_keycloak(kc):
+    _, call = kc
+    call.return_value = response(body=[])
+
+    keycloak.logout_user('ghost')
+
+    assert call.call_count == 1

@@ -9,6 +9,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api import keycloak
 from api.authentication import SessionAuth
 from api.serializers import AuthConfigSerializer, LoginSerializer, UserSerializer
 
@@ -88,5 +89,12 @@ class LogoutView(APIView):
         responses={204: None, 401: OpenApiResponse(description='Не выполнен вход')},
     )
     def post(self, request):
+        # Leaving the panel also ends the SSO session; otherwise «Войти через SSO» would let the user
+        # straight back in without the passkey. Keycloak being down must not block the logout itself.
+        if keycloak.enabled():
+            try:
+                keycloak.logout_user(request.user.username)
+            except keycloak.KeycloakError:
+                pass
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)

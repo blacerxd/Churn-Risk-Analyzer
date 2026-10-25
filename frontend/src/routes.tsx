@@ -9,6 +9,7 @@ import DataSnapshot from './pages/DataSnapshot'
 import Login from './pages/Login'
 import ModelSettings from './pages/ModelSettings'
 import NotFound from './pages/NotFound'
+import Profile from './pages/Profile'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
@@ -24,6 +25,7 @@ export const router = createBrowserRouter([
           { path: '/settings', element: <ModelSettings /> },
           { path: '/data', element: <DataSnapshot /> },
           { path: '/administration', element: <Administration /> },
+          { path: '/profile', element: <Profile /> },
           { path: '*', element: <NotFound /> },
         ],
       },

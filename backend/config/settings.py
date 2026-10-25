@@ -169,6 +169,8 @@ if OIDC_ENABLED:
     OIDC_CREATE_USER = False
     LOGIN_REDIRECT_URL = '/'
     LOGIN_REDIRECT_URL_FAILURE = '/login?error=sso'
+    # Every SSO sign-in confirms the passkey again, even if a Keycloak session is still alive
+    OIDC_AUTH_REQUEST_EXTRA_PARAMS = {'prompt': 'login'}
 
 # nginx (client_max_body_size in frontend/nginx.conf) cuts anything above 20 MB anyway.
 SNAPSHOT_MAX_BYTES = int(os.environ.get('SNAPSHOT_MAX_BYTES', 20 * 1024 * 1024))

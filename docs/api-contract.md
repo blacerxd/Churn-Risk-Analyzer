@@ -221,7 +221,11 @@
 | Метод | Путь | Поведение |
 |---|---|---|
 | POST | `/api/v1/auth/login` | `{username, password}` → 200 + cookie сессии, 400/401 при ошибке |
-| GET | `/api/v1/auth/me` | 200 `{id, username, is_staff, is_superuser}` или 401/403 |
+| GET | `/api/v1/auth/me` | 200 `{id, username, first_name, last_name, email, is_staff, is_superuser}` или 401/403 |
+| GET | `/api/v1/auth/passkeys` | `{sso_enabled, sso_account, passkeys: [{id, label, created_at}]}` — свои ключи доступа для SSO |
+| POST | `/api/v1/auth/passkeys/setup` | `{url}`: куда отправить браузер, чтобы создать ключ в Keycloak. Без учётной записи SSO нужен `{password}` от панели |
+| DELETE | `/api/v1/auth/passkeys/{id}` | удалить свой ключ, 204 |
+| GET | `/api/v1/auth/oidc/passkey?next=` | редирект в Keycloak на создание ключа (`kc_action`), затем обратно на `next` |
 | GET | `/api/v1/auth/config` | без сессии, `{"oidc_enabled": false}`: показывать ли кнопку SSO (`OIDC_ENABLED` в `.env`) |
 | GET | `/api/v1/auth/oidc/login?next=/customers` | редирект на страницу входа провайдера (404, если SSO выключен) |
 | GET | `/api/v1/auth/oidc/callback` | сюда провайдер возвращает пользователя: сессия и редирект на `next`, при ошибке на `/login?error=sso` |

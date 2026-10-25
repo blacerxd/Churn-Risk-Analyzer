@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigate, useOutletContext } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate, useOutletContext } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../lib/api'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
@@ -100,7 +100,10 @@ export default function Layout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="hidden items-center gap-3 border-b border-line bg-surface px-8 py-4 md:flex lg:px-10">
           <span className="mr-auto">{status}</span>
-          <span className="hidden truncate font-sans text-sm text-muted lg:inline">{me.username}</span>
+          <Link to="/profile" title="Профиль" className="hidden items-center gap-1.5 truncate rounded-full px-2 py-1 font-sans text-sm text-muted transition-colors hover:bg-hover hover:text-ink lg:inline-flex">
+            <Icon name="people" className="h-4 w-4" />
+            {me.username}
+          </Link>
           {themeSwitch}
           {logoutButton}
         </header>
@@ -136,6 +139,10 @@ export default function Layout() {
                   </NavLink>
                 )}
               </nav>
+              <Link to="/profile" onClick={() => setMenuOpen(false)} className={navItemClass(false, 'min-h-13')}>
+                <IconTile name="people" size="sm" />
+                Профиль · {me.username}
+              </Link>
               <div className="flex items-center justify-between gap-3 pt-2">
                 {themeSwitch}
                 {logoutButton}

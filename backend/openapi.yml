@@ -323,6 +323,74 @@ paths:
           description: ''
         '401':
           description: Не выполнен вход
+  /api/v1/auth/passkeys:
+    get:
+      operationId: api_v1_auth_passkeys_retrieve
+      description: Есть ли у текущего пользователя учётная запись SSO и какие ключи
+        для входа через SSO он добавил.
+      summary: Мои ключи доступа (passkey)
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Passkeys'
+          description: ''
+  /api/v1/auth/passkeys/{credential_id}:
+    delete:
+      operationId: api_v1_auth_passkeys_destroy
+      summary: Удалить ключ доступа
+      parameters:
+      - in: path
+        name: credential_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+        '404':
+          description: Нет такого ключа
+  /api/v1/auth/passkeys/setup:
+    post:
+      operationId: api_v1_auth_passkeys_setup_create
+      description: 'Возвращает адрес, по которому браузер уходит в Keycloak: подтвердить
+        вход и создать ключ, затем вернуться в профиль. Если учётной записи SSO ещё
+        нет (пользователь создан до включения SSO), нужен пароль от панели: после
+        проверки учётная запись создаётся.'
+      summary: Начать добавление ключа доступа
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasskeySetup'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasskeySetup'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasskeySetup'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasskeySetupResult'
+          description: ''
+        '400':
+          description: Нужен пароль или он неверный
   /api/v1/customers:
     get:
       operationId: customers_list
@@ -935,6 +1003,53 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StatusEvent'
+    Passkey:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+          description: Название, которое пользователь дал ключу при создании
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - created_at
+      - id
+      - label
+    PasskeySetup:
+      type: object
+      properties:
+        password:
+          type: string
+          description: Пароль от панели, если учётной записи SSO ещё нет
+    PasskeySetupResult:
+      type: object
+      properties:
+        url:
+          type: string
+          description: Куда перейти браузеру
+      required:
+      - url
+    Passkeys:
+      type: object
+      properties:
+        sso_enabled:
+          type: boolean
+          description: Включён ли вход через SSO на сервере
+        sso_account:
+          type: boolean
+          description: Есть ли у пользователя учётная запись в SSO
+        passkeys:
+          type: array
+          items:
+            $ref: '#/components/schemas/Passkey'
+      required:
+      - passkeys
+      - sso_account
+      - sso_enabled
     PatchedAdminUser:
       type: object
       properties:
@@ -1256,6 +1371,19 @@ components:
           title: Имя пользователя
           description: Обязательное поле. Не более 150 символов. Только буквы, цифры
             и символы @/./+/-/_.
+        first_name:
+          type: string
+          readOnly: true
+          title: Имя
+        last_name:
+          type: string
+          readOnly: true
+          title: Фамилия
+        email:
+          type: string
+          format: email
+          readOnly: true
+          title: Адрес электронной почты
         is_staff:
           type: boolean
           readOnly: true
@@ -1268,9 +1396,12 @@ components:
           title: Статус суперпользователя
           description: Указывает, что пользователь имеет все права без явного их назначения.
       required:
+      - email
+      - first_name
       - id
       - is_staff
       - is_superuser
+      - last_name
       - username
   securitySchemes:
     cookieAuth:

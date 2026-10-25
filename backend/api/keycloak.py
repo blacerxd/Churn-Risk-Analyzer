@@ -90,3 +90,33 @@ def update_user(user, password: str | None = None, username: str | None = None) 
         _call('PUT', f'/users/{user_id}/reset-password', json={
             'type': 'password', 'value': password, 'temporary': False,
         })
+
+
+PASSKEY_TYPE = 'webauthn-passwordless'
+
+
+def user_id(username: str) -> str | None:
+    return _find(username)
+
+
+def list_passkeys(kc_user_id: str) -> list[dict]:
+    credentials = _call('GET', f'/users/{kc_user_id}/credentials').json()
+    return [
+        {'id': item['id'], 'label': item.get('userLabel') or '', 'created': item.get('createdDate')}
+        for item in credentials if item.get('type') == PASSKEY_TYPE
+    ]
+
+
+def delete_passkey(kc_user_id: str, credential_id: str) -> bool:
+    """Removes only the user's own passkeys, never the password."""
+    if credential_id not in {item['id'] for item in list_passkeys(kc_user_id)}:
+        return False
+    _call('DELETE', f'/users/{kc_user_id}/credentials/{credential_id}')
+    return True
+
+
+def logout_user(username: str) -> None:
+    """Ends the user's Keycloak sessions, so the next SSO sign-in asks for the passkey again."""
+    kc_user_id = _find(username)
+    if kc_user_id:
+        _call('POST', f'/users/{kc_user_id}/logout')

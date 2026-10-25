@@ -72,11 +72,11 @@ export const handlers = [
     const body = (await request.json()) as { username?: string; password?: string }
     if (body.username === 'admin' && body.password === 'admin') {
       sessionStorage.setItem(AUTH_KEY, '1')
-      return HttpResponse.json({ id: 1, username: 'admin', is_staff: true, is_superuser: true })
+      return HttpResponse.json({ id: 1, username: 'admin', first_name: '', last_name: '', email: 'admin@example.com', is_staff: true, is_superuser: true })
     }
     return HttpResponse.json({ detail: 'Неверный логин или пароль', code: 'invalid_credentials' }, { status: 401 })
   }),
-  http.get(`${API}/auth/me`, () => (isAuthed() ? HttpResponse.json({ id: 1, username: 'admin', is_staff: true, is_superuser: true }) : unauthorized())),
+  http.get(`${API}/auth/me`, () => (isAuthed() ? HttpResponse.json({ id: 1, username: 'admin', first_name: '', last_name: '', email: 'admin@example.com', is_staff: true, is_superuser: true }) : unauthorized())),
   http.post(`${API}/auth/logout`, () => {
     sessionStorage.removeItem(AUTH_KEY)
     return new HttpResponse(null, { status: 204 })

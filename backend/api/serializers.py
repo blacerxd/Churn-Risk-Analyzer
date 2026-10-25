@@ -15,7 +15,7 @@ class LoginSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ['id', 'username', 'is_staff', 'is_superuser']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_staff', 'is_superuser']
         read_only_fields = fields
 
 
@@ -307,3 +307,23 @@ class StatusEventSerializer(serializers.Serializer):
 
 class AdminUserQuerySerializer(serializers.Serializer):
     search = serializers.CharField(required=False, help_text='Часть логина или email')
+
+
+class PasskeySerializer(serializers.Serializer):
+    id = serializers.CharField()
+    label = serializers.CharField(help_text='Название, которое пользователь дал ключу при создании')
+    created_at = serializers.DateTimeField(allow_null=True)
+
+
+class PasskeysSerializer(serializers.Serializer):
+    sso_enabled = serializers.BooleanField(help_text='Включён ли вход через SSO на сервере')
+    sso_account = serializers.BooleanField(help_text='Есть ли у пользователя учётная запись в SSO')
+    passkeys = PasskeySerializer(many=True)
+
+
+class PasskeySetupSerializer(serializers.Serializer):
+    password = serializers.CharField(required=False, help_text='Пароль от панели, если учётной записи SSO ещё нет')
+
+
+class PasskeySetupResultSerializer(serializers.Serializer):
+    url = serializers.CharField(help_text='Куда перейти браузеру')

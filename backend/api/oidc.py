@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.http import Http404
+from django.shortcuts import redirect
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 from mozilla_django_oidc.views import OIDCAuthenticationCallbackView, OIDCAuthenticationRequestView
 
@@ -31,7 +32,35 @@ def oidc_login(request):
     return OIDCAuthenticationRequestView.as_view()(request)
 
 
+class CallbackView(OIDCAuthenticationCallbackView):
+    """After a passkey request Keycloak reports the result in kc_action_status (success, cancelled, error)."""
+
+    @property
+    def success_url(self):
+        url = super().success_url
+        action_status = self.request.GET.get('kc_action_status')
+        if action_status and action_status != 'success' and 'passkey=added' in url:
+            return url.replace('passkey=added', 'passkey=cancelled')
+        return url
+
+
 def oidc_callback(request):
     if not settings.OIDC_ENABLED:
         raise Http404
-    return OIDCAuthenticationCallbackView.as_view()(request)
+    return CallbackView.as_view()(request)
+
+
+class PasskeyRegistrationView(OIDCAuthenticationRequestView):
+    """Keycloak application-initiated action: confirm who you are, register a passkey, come back."""
+
+    def get_extra_params(self, request):
+        # prompt=login: a new key is added only after confirming who you are right now
+        return {'kc_action': 'webauthn-register-passwordless', 'login_hint': request.user.username, 'prompt': 'login'}
+
+
+def oidc_passkey(request):
+    if not settings.OIDC_ENABLED:
+        raise Http404
+    if not request.user.is_authenticated:
+        return redirect('/login?next=/profile')
+    return PasskeyRegistrationView.as_view()(request)
