@@ -59,7 +59,7 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="flex shrink-0 flex-col gap-4 border-b border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900 md:w-56 md:border-b-0 md:border-r md:p-6">
+      <aside className="flex shrink-0 flex-col gap-4 border-b border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900 md:sticky md:top-0 md:h-screen md:w-56 md:border-b-0 md:border-r md:p-6">
         <div className="flex items-center gap-2">
           <AezaLogo className="h-8 w-8" />
           <span className="font-['Exo_2'] text-xl font-bold tracking-tight text-[#182D48] dark:text-white">aéza</span>
@@ -73,7 +73,7 @@ export default function Layout() {
               className={({ isActive }) =>
                 `whitespace-nowrap rounded-lg px-3.5 py-2 font-['Exo_2'] text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] ${
                   isActive
-                    ? 'bg-[#182D48] text-white'
+                    ? 'bg-[#182D48] text-white dark:bg-[#4CC6F1]/15 dark:text-[#4CC6F1]'
                     : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
                 }`
               }
@@ -93,24 +93,31 @@ export default function Layout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900 md:px-8">
+        <header className="flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900 sm:gap-3 md:px-8">
           <span
             role="status"
-            className={`mr-auto flex items-center gap-2 font-['Inter'] text-sm ${live.connected ? 'text-neutral-600 dark:text-neutral-300' : 'text-red-500'}`}
+            className={`mr-auto flex min-w-0 items-center gap-2 whitespace-nowrap font-['Inter'] text-sm ${live.connected ? 'text-neutral-600 dark:text-neutral-300' : 'text-red-500'}`}
           >
-            <span aria-hidden="true" className={`h-2 w-2 rounded-full ${live.connected ? 'bg-emerald-500' : 'bg-red-500'}`} />
-            {live.connected && live.updatedAt
-              ? `Обновлено в ${live.updatedAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
-              : 'Нет связи'}
+            <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${live.connected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            {live.connected && live.updatedAt ? (
+              <span>
+                <span className="hidden sm:inline">Обновлено в </span>
+                {live.updatedAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            ) : (
+              'Нет связи'
+            )}
           </span>
-          <span className="font-['Inter'] text-sm text-neutral-600 dark:text-neutral-300">{me.username}</span>
+          <span className="hidden truncate font-['Inter'] text-sm text-neutral-600 dark:text-neutral-300 sm:inline">{me.username}</span>
           <button
             type="button"
             onClick={toggleTheme}
             aria-pressed={dark}
-            className="rounded-lg border border-neutral-300 px-3 py-2 font-['Inter'] text-sm text-neutral-700 transition-all hover:border-[#4CC6F1] focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] dark:border-neutral-800 dark:text-neutral-300"
+            aria-label={dark ? 'Включить светлую тему' : 'Включить тёмную тему'}
+            className="whitespace-nowrap rounded-lg border border-neutral-300 px-3 py-2 font-['Inter'] text-sm text-neutral-700 transition-all hover:border-[#4CC6F1] focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] dark:border-neutral-800 dark:text-neutral-300"
           >
-            {dark ? 'Светлая тема' : 'Тёмная тема'}
+            <span aria-hidden="true">{dark ? '☀' : '☾'}</span>
+            <span className="ml-2 hidden sm:inline">{dark ? 'Светлая тема' : 'Тёмная тема'}</span>
           </button>
           <button type="button" onClick={() => void handleLogout()} disabled={loggingOut} className={btnSecondary}>
             Выйти

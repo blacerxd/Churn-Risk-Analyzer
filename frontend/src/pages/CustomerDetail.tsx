@@ -1,9 +1,9 @@
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { EmptyState, ErrorState, RiskBadge, Skeleton, Term } from '../components/ui'
-import { LEVEL_BAR_CLASS, cardClass, headingClass, mutedClass, tableHeadClass } from '../components/styles'
+import { LEVEL_BAR_CLASS, cardBase, cardClass, headingBase, headingClass, linkClass, mutedClass, tableHeadClass } from '../components/styles'
 import { ApiError, apiFetch, queryKeys } from '../lib/api'
-import type { CustomerDetailData, ServiceStatus } from '../lib/api'
+import type { CustomerDetailData, ModelSettingsData, ServiceStatus } from '../lib/api'
 import { PAYMENT_TERM_LABEL, SERVICE_STATUS_LABEL, formatDate, formatDecimal, formatEuro, formatScore, pluralize } from '../lib/format'
 
 interface LocationState {
@@ -34,6 +34,12 @@ function StatusBadge({ status }: { status: ServiceStatus }) {
   )
 }
 
+function DaysToExpiry({ days }: { days: number | null }) {
+  if (days === null) return <>—</>
+  if (days >= 0) return <>{days}</>
+  return <span className="text-red-600 dark:text-red-400">{`${-days} ${pluralize(-days, 'день', 'дня', 'дней')} назад`}</span>
+}
+
 function DetailSkeleton() {
   return (
     <div className="flex flex-col gap-6" aria-busy="true">
@@ -54,6 +60,13 @@ export default function CustomerDetail() {
     queryFn: () => apiFetch<CustomerDetailData>(`/customers/${id}`),
     enabled: Boolean(id),
   })
+  // Горизонт потерь нужен, чтобы формула в карточке совпадала с расчётом на сервере.
+  const { data: settings } = useQuery({
+    queryKey: queryKeys.settings,
+    queryFn: () => apiFetch<ModelSettingsData>('/model/settings'),
+  })
+  const horizonParam = settings?.params.loss_horizon_months
+  const horizon = typeof horizonParam === 'number' ? horizonParam : null
 
   const notFound = error instanceof ApiError && error.status === 404
 
@@ -61,14 +74,16 @@ export default function CustomerDetail() {
   const monthlyAtRisk = scored.reduce((sum, service) => sum + service.monthly_equivalent_cents, 0)
   const probability = data && data.score !== null ? data.score / 100 : null
   const availableCents = data ? data.balance_cents + (data.bonus_usable ? data.bonus_balance_cents : 0) : 0
-  const maxContribution = data ? Math.max(1, ...data.factors.map((factor) => factor.contribution)) : 1
+  const activeFactors = data ? data.factors.filter((factor) => factor.contribution > 0) : []
+  const quietFactors = data ? data.factors.filter((factor) => factor.contribution <= 0) : []
+  const maxContribution = Math.max(1, ...activeFactors.map((factor) => factor.contribution))
 
   return (
     <div className="flex flex-col gap-6 font-['Inter']">
       <div>
         <Link
           to={`/customers${listSearch}`}
-          className="inline-flex items-center gap-2 rounded-lg text-sm font-medium text-[#182D48] hover:underline focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] dark:text-[#4CC6F1]"
+          className={`${linkClass} inline-flex items-center gap-2 text-sm`}
         >
           <span aria-hidden="true">←</span>
           Назад к списку
@@ -92,17 +107,13 @@ export default function CustomerDetail() {
               <h1 id="customer-title" className={`${headingClass} truncate text-2xl`}>
                 {data.email}
               </h1>
-              <p className={`${mutedClass} mt-2 max-w-xl`}>
-                {data.level === 'none' || data.factors.length === 0
-                  ? 'Недостаточно данных для оценки'
-                  : data.factors[0].explanation}
-              </p>
+              <p className={`${mutedClass} mt-2 max-w-xl`}>{data.top_reason}</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex shrink-0 items-center gap-4">
               {data.score === null ? (
                 <div className="text-right">
-                  <p className={`${headingClass} text-3xl text-neutral-500 dark:text-neutral-500`}>Нет оценки</p>
-                  <p className={`${mutedClass} text-xs`}>У клиента нет услуг, по которым можно оценить риск</p>
+                  <p className={`${headingBase} text-6xl text-neutral-400 dark:text-neutral-600`}>—</p>
+                  <p className={`${mutedClass} text-xs`}>Нет услуг, по которым можно оценить риск</p>
                 </div>
               ) : (
                 <div className="text-right">
@@ -118,11 +129,13 @@ export default function CustomerDetail() {
             <h2 id="factors-title" className={`${headingClass} text-lg`}>
               Почему такой риск
             </h2>
-            {data.factors.length === 0 ? (
-              <EmptyState title="Причин риска нет" hint="Ни один из признаков модели не сработал или данных недостаточно для оценки." />
+            {activeFactors.length === 0 ? (
+              <p className={`${mutedClass} mt-2`}>
+                {data.level === 'none' ? 'Оценка не выставлена: у клиента нет активных услуг.' : 'Ни один признак риска не сработал.'}
+              </p>
             ) : (
               <ul className="mt-4 flex flex-col gap-4">
-                {data.factors.map((factor) => (
+                {activeFactors.map((factor) => (
                   <li key={factor.key}>
                     <div className="flex items-baseline justify-between gap-4">
                       <span className="text-sm font-semibold text-black dark:text-white">{factor.title}</span>
@@ -142,6 +155,18 @@ export default function CustomerDetail() {
                   </li>
                 ))}
               </ul>
+            )}
+            {quietFactors.length > 0 && data.level !== 'none' && (
+              <div className="mt-6 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+                <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">Не сработали</p>
+                <ul className="mt-2 flex flex-col gap-1.5">
+                  {quietFactors.map((factor) => (
+                    <li key={factor.key} className="text-sm text-neutral-500">
+                      <span className="font-medium text-neutral-700 dark:text-neutral-300">{factor.title}:</span> {factor.explanation}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </section>
 
@@ -171,13 +196,13 @@ export default function CustomerDetail() {
             </div>
 
             <div className="mt-6 rounded-lg border border-[#4CC6F1]/40 bg-[#4CC6F1]/10 p-4 text-sm text-[#182D48] dark:text-white">
-              <p className="font-semibold">Ожидаемая потеря = месячная стоимость услуг × вероятность оттока</p>
+              <p className="font-semibold">Ожидаемая потеря = месячная стоимость услуг × вероятность ухода × горизонт потерь</p>
               {probability === null ? (
                 <p className="mt-2">Оценка не выставлена, поэтому ожидаемая потеря равна {formatEuro(data.expected_loss_cents)}.</p>
               ) : (
                 <p className="mt-2 tabular-nums">
-                  {formatEuro(monthlyAtRisk)} × {probability.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ≈{' '}
-                  <strong>{formatEuro(data.expected_loss_cents)}</strong>
+                  {formatEuro(monthlyAtRisk)} × {probability.toLocaleString('ru-RU', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+                  {horizon !== null && ` × ${horizon} мес.`} ≈ <strong>{formatEuro(data.expected_loss_cents)}</strong>
                 </p>
               )}
               <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-400">
@@ -187,7 +212,7 @@ export default function CustomerDetail() {
             </div>
           </section>
 
-          <section className={`${cardClass} p-0`} aria-labelledby="services-title">
+          <section className={cardBase} aria-labelledby="services-title">
             <h2 id="services-title" className={`${headingClass} p-6 pb-4 text-lg`}>
               Услуги клиента
             </h2>
@@ -220,7 +245,7 @@ export default function CustomerDetail() {
                         <td className="px-4 py-3 text-neutral-600 dark:text-neutral-400">{PAYMENT_TERM_LABEL[service.payment_term] ?? service.payment_term}</td>
                         <td className="px-4 py-3">{service.autoprolong ? 'Включено' : 'Выключено'}</td>
                         <td className="px-4 py-3 text-right tabular-nums" title={`Окончание: ${formatDate(service.expires_at)}`}>
-                          {service.days_to_expiry ?? '—'}
+                          <DaysToExpiry days={service.days_to_expiry} />
                         </td>
                         <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatEuro(service.expected_loss_cents)}</td>
                       </tr>

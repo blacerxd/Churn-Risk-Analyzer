@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { RiskLevel } from '../lib/api'
 import { LEVEL_LABEL } from '../lib/format'
-import { btnSecondary, cardClass, headingClass, mutedClass } from './styles'
+import { btnSecondary, cardClass, headingBase, headingClass, mutedClass } from './styles'
 
 const BADGE_CLASS: Record<RiskLevel, string> = {
   high: 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30',
@@ -34,7 +34,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
   return (
     <div role="alert" className={`${cardClass} flex flex-col items-start gap-4`}>
       <div>
-        <p className={`${headingClass} text-lg text-red-500 dark:text-red-500`}>Не удалось загрузить данные</p>
+        <p className={`${headingBase} text-lg text-red-600 dark:text-red-400`}>Не удалось загрузить данные</p>
         <p className={`${mutedClass} mt-1`}>{message}</p>
       </div>
       {onRetry && (

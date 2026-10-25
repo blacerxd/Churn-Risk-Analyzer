@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ErrorState, PageHeader, Skeleton, Term } from '../components/ui'
-import { btnPrimary, btnSecondary, cardClass, headingClass, inputClass, inputErrorClass, labelClass, mutedClass } from '../components/styles'
+import { ErrorState, PageHeader, Skeleton } from '../components/ui'
+import { btnPrimary, btnSecondary, cardClass, headingClass, inputClass, labelClass, mutedClass } from '../components/styles'
 import { ApiError, apiFetch, queryKeys } from '../lib/api'
 import type { ModelSettingsData, ModelSettingsPatch, ParamField } from '../lib/api'
 
@@ -16,6 +16,20 @@ const PARAM_LABEL: Record<string, string> = {
 
 function toDraft(data: ModelSettingsData): ModelSettingsPatch {
   return { weights: { ...data.weights }, thresholds: { ...data.thresholds }, params: { ...data.params } }
+}
+
+// PATCH сохраняет только переданные поля (docs/api-contract.md): отправляем изменённые,
+// чтобы нетронутые веса продолжали следовать умолчаниям модели.
+function changedFields(draft: ModelSettingsPatch, saved: ModelSettingsPatch): Partial<ModelSettingsPatch> {
+  const patch: Record<string, Record<string, unknown>> = {}
+  for (const section of ['weights', 'thresholds', 'params'] as const) {
+    const current: Record<string, unknown> = draft[section]
+    const before: Record<string, unknown> = saved[section]
+    for (const [key, value] of Object.entries(current)) {
+      if (value !== before[key]) (patch[section] ??= {})[key] = value
+    }
+  }
+  return patch
 }
 
 function validate(values: ModelSettingsPatch, data: ModelSettingsData): FieldErrors {
@@ -105,7 +119,7 @@ function NumberInput({ id, value, min, max, step = 1, error, onChange, disabled 
       aria-invalid={Boolean(error)}
       aria-describedby={error ? `${id}-error` : undefined}
       onChange={(event) => onChange(event.target.value === '' ? Number.NaN : Number(event.target.value))}
-      className={`${inputClass} w-24 text-right tabular-nums ${error ? inputErrorClass : ''}`}
+      className={`${inputClass({ invalid: Boolean(error), size: 'w-24 shrink-0 py-2' })} text-right tabular-nums`}
     />
   )
 }
@@ -183,12 +197,12 @@ export default function ModelSettings() {
   }
 
   async function handleSave() {
-    if (!draft || !canSave) return
+    if (!draft || !saved || !canSave) return
     setStatus('recalculating')
     setServerErrors({})
     setGeneralError(null)
     try {
-      await apiFetch<unknown>('/model/settings', { method: 'PATCH', json: draft })
+      await apiFetch<unknown>('/model/settings', { method: 'PATCH', json: changedFields(draft, saved) })
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.settings }),
         queryClient.invalidateQueries({ queryKey: queryKeys.summary }),
@@ -285,11 +299,7 @@ export default function ModelSettings() {
                       <label htmlFor={id} className="font-['Exo_2'] text-sm font-semibold text-[#182D48] dark:text-white">
                         {field.title}
                       </label>
-                      <div className="mt-0.5 text-xs text-neutral-500">
-                        <Term hint={field.description || field.key}>
-                          <code>{field.key}</code>
-                        </Term>
-                      </div>
+                      <code className="mt-0.5 block font-mono text-[11px] text-neutral-500">{field.key}</code>
                       {field.description && <p className={`${mutedClass} mt-1 text-xs`}>{field.description}</p>}
                     </div>
                     <div className="flex flex-col gap-1.5 md:items-end">

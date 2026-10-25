@@ -3,7 +3,7 @@ import type { ChangeEvent, KeyboardEvent } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { EmptyState, ErrorState, PageHeader, RiskBadge, Skeleton } from '../components/ui'
-import { btnSecondary, cardClass, inputClass, tableHeadClass } from '../components/styles'
+import { btnSecondary, cardBase, inputClass, segmentActiveClass, segmentClass, segmentIdleClass, tableHeadClass } from '../components/styles'
 import { ApiError, apiFetch, queryKeys } from '../lib/api'
 import type { CustomersPage, RiskLevel } from '../lib/api'
 import { LEVEL_LABEL, formatEuro, formatInt, formatScore } from '../lib/format'
@@ -14,8 +14,6 @@ const DEFAULT_ORDERING = '-score'
 const DEFAULT_PAGE_SIZE = 25
 const PAGE_SIZES = [25, 50, 100]
 const LEVEL_FILTERS: Array<RiskLevel | ''> = ['', 'high', 'medium', 'low', 'none']
-
-const SORT_KEYS: SortKey[] = ['id', 'email', 'balance', 'total_replenished', 'score']
 
 function parsePositive(value: string | null, fallback: number): number {
   const parsed = Number(value)
@@ -131,7 +129,7 @@ export default function Customers() {
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Поиск по email"
-            className={inputClass}
+            className={inputClass()}
           />
         </div>
 
@@ -144,11 +142,7 @@ export default function Customers() {
                 type="button"
                 aria-pressed={active}
                 onClick={() => updateParams({ level: item || null, page: null })}
-                className={`rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] ${
-                  active
-                    ? 'border-[#182D48] bg-[#182D48] text-white'
-                    : 'border-neutral-300 bg-white text-neutral-700 hover:border-[#4CC6F1] dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300'
-                }`}
+                className={`${segmentClass} ${active ? segmentActiveClass : segmentIdleClass}`}
               >
                 {item ? LEVEL_LABEL[item] : 'Все'}
               </button>
@@ -160,13 +154,13 @@ export default function Customers() {
       {isError && <ErrorState message={error instanceof ApiError ? error.message : 'Попробуйте обновить страницу'} onRetry={() => void refetch()} />}
 
       {!isError && (
-        <section className={`${cardClass} p-0`} aria-busy={isFetching}>
+        <section className={cardBase} aria-busy={isFetching}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px]">
               <thead>
                 <tr className="border-b border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
                   {columns.map((column) => {
-                    const active = SORT_KEYS.includes(column.key) && sortColumn === column.key
+                    const active = sortColumn === column.key
                     const direction = active ? sortDirection : null
                     return (
                       <th
@@ -254,9 +248,9 @@ export default function Customers() {
                 <span>
                   Показано {formatInt(from)}–{formatInt(to)} из {formatInt(data.count)}
                 </span>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 whitespace-nowrap">
                   На странице
-                  <select value={pageSize} onChange={handlePageSize} className={`${inputClass} w-auto py-1`}>
+                  <select value={pageSize} onChange={handlePageSize} className={inputClass({ size: 'w-auto py-1' })}>
                     {PAGE_SIZES.map((size) => (
                       <option key={size} value={size}>
                         {size}
