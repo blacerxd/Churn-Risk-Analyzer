@@ -1,0 +1,493 @@
+/* Django admin in the panel's colors: navy #182D48, cyan #4CC6F1, Inter + Exo 2.
+   Variables follow admin's own scheme: light by default, dark by system setting or toggle. */
+
+html[data-theme="light"],
+:root {
+    --primary: #4CC6F1;
+    --secondary: #182D48;
+    --accent: #4CC6F1;
+    --primary-fg: #fff;
+
+    --body-fg: #000;
+    --body-bg: #F4F4F4;
+    --body-quiet-color: #737373;
+    --body-medium-color: #404040;
+    --body-loud-color: #182D48;
+
+    --header-color: #fff;
+    --header-branding-color: #fff;
+    --header-bg: #182D48;
+    --header-link-color: #fff;
+
+    --breadcrumbs-fg: #737373;
+    --breadcrumbs-link-fg: #182D48;
+    --breadcrumbs-bg: #fff;
+
+    --link-fg: #182D48;
+    --link-hover-color: #0f6f93;
+    --link-selected-fg: #182D48;
+
+    --hairline-color: #e5e5e5;
+    --border-color: #d4d4d4;
+    --error-fg: #ef4444;
+
+    --message-success-bg: #d1fae5;
+    --message-warning-bg: #ffedd5;
+    --message-error-bg: #fee2e2;
+    --message-info-bg: #e0f5fd;
+
+    --darkened-bg: #fafafa;
+    --selected-bg: #e0f5fd;
+    --selected-row: #e0f5fd;
+
+    --button-fg: #000;
+    --button-bg: #4CC6F1;
+    --button-hover-bg: #6dd2f4;
+    --default-button-bg: #182D48;
+    --default-button-hover-bg: #23406a;
+    --close-button-bg: #737373;
+    --close-button-hover-bg: #404040;
+    --delete-button-bg: #ef4444;
+    --delete-button-hover-bg: #dc2626;
+
+    --object-tools-fg: #fff;
+    --object-tools-bg: #182D48;
+    --object-tools-hover-bg: #23406a;
+
+    --font-family-primary: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --card-bg: #fff;
+    --level-high: #ef4444;
+    --level-medium: #E97C35;
+    --level-low: #10b981;
+    --level-none: #a3a3a3;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --body-fg: #fff;
+        --body-bg: #000;
+        --body-quiet-color: #a3a3a3;
+        --body-medium-color: #d4d4d4;
+        --body-loud-color: #fff;
+        --breadcrumbs-fg: #a3a3a3;
+        --breadcrumbs-link-fg: #4CC6F1;
+        --breadcrumbs-bg: #171717;
+        --link-fg: #4CC6F1;
+        --link-hover-color: #8ddcf7;
+        --link-selected-fg: #4CC6F1;
+        --hairline-color: #262626;
+        --border-color: #404040;
+        --message-success-bg: #064e3b;
+        --message-warning-bg: #7c2d12;
+        --message-error-bg: #7f1d1d;
+        --message-info-bg: #0c4a6e;
+        --darkened-bg: #0a0a0a;
+        --selected-bg: #0c3a4d;
+        --selected-row: #0c3a4d;
+        --default-button-bg: #262626;
+        --default-button-hover-bg: #404040;
+        --object-tools-bg: #262626;
+        --object-tools-hover-bg: #404040;
+        --card-bg: #171717;
+        color-scheme: dark;
+    }
+}
+
+html[data-theme="dark"] {
+    --body-fg: #fff;
+    --body-bg: #000;
+    --body-quiet-color: #a3a3a3;
+    --body-medium-color: #d4d4d4;
+    --body-loud-color: #fff;
+    --breadcrumbs-fg: #a3a3a3;
+    --breadcrumbs-link-fg: #4CC6F1;
+    --breadcrumbs-bg: #171717;
+    --link-fg: #4CC6F1;
+    --link-hover-color: #8ddcf7;
+    --link-selected-fg: #4CC6F1;
+    --hairline-color: #262626;
+    --border-color: #404040;
+    --message-success-bg: #064e3b;
+    --message-warning-bg: #7c2d12;
+    --message-error-bg: #7f1d1d;
+    --message-info-bg: #0c4a6e;
+    --darkened-bg: #0a0a0a;
+    --selected-bg: #0c3a4d;
+    --selected-row: #0c3a4d;
+    --default-button-bg: #262626;
+    --default-button-hover-bg: #404040;
+    --object-tools-bg: #262626;
+    --object-tools-hover-bg: #404040;
+    --card-bg: #171717;
+    color-scheme: dark;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, #site-name, .module caption, .stat-card .value {
+    font-family: "Exo 2", var(--font-family-primary);
+    letter-spacing: -0.01em;
+}
+
+/* header */
+#header {
+    padding: 14px 32px;
+    align-items: center;
+}
+
+#site-name a {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.15rem;
+}
+
+#site-name a::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #4CC6F1;
+}
+
+#user-tools a {
+    border-bottom: none;
+    opacity: 0.85;
+}
+
+#user-tools a:hover {
+    opacity: 1;
+    color: #4CC6F1;
+    text-decoration: none;
+}
+
+div.breadcrumbs {
+    padding: 12px 32px;
+    border-bottom: 1px solid var(--hairline-color);
+}
+
+div.breadcrumbs a {
+    font-weight: 500;
+}
+
+#content {
+    padding: 24px 32px;
+}
+
+#content h1 {
+    color: var(--body-loud-color);
+    font-weight: 600;
+}
+
+/* cards: modules, tables, forms */
+.module,
+#changelist .changelist-form-container,
+fieldset.module {
+    background: var(--card-bg);
+    border: 1px solid var(--hairline-color);
+    border-radius: 12px;
+}
+
+#changelist .results {
+    overflow-x: auto;
+}
+
+/* the panel underlines links only on hover; html body #container beats admin's a:not(...) rule */
+html body #container a:link, html body #container a:visited {
+    text-decoration: none;
+}
+
+html body #container #content a:hover, html body #container div.breadcrumbs a:hover {
+    text-decoration: underline;
+}
+
+html body #container a.button:hover, html body #container .object-tools a:hover {
+    text-decoration: none;
+}
+
+/* current section in the sidebar: admin paints it with the header color */
+#nav-sidebar .current-app .section:link,
+#nav-sidebar .current-app .section:visited {
+    color: var(--body-loud-color);
+}
+
+#nav-sidebar .current-model {
+    background: var(--selected-row);
+}
+
+/* fieldset headings: no navy frame */
+fieldset .fieldset-heading,
+fieldset .inline-heading {
+    border: none;
+    border-bottom: 1px solid var(--hairline-color);
+    background: transparent;
+    color: var(--body-loud-color);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 14px 16px;
+}
+
+/* plain forms outside ModelAdmin (data page) */
+fieldset.module .form-row {
+    padding: 12px 16px;
+}
+
+fieldset.module .submit-row {
+    margin: 0;
+    border: none;
+    border-top: 1px solid var(--hairline-color);
+    border-radius: 0;
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+button.button {
+    padding: 9px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.module h2, .module caption, .inline-group h2 {
+    background: transparent;
+    color: var(--body-loud-color);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--hairline-color);
+}
+
+.module caption a.section {
+    color: var(--body-loud-color);
+}
+
+#nav-sidebar .module {
+    border-radius: 12px;
+}
+
+thead th, tfoot td, .module table thead th {
+    background: var(--darkened-bg);
+    color: var(--body-quiet-color);
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-color: var(--hairline-color);
+}
+
+td, th {
+    border-bottom-color: var(--hairline-color);
+}
+
+#changelist-filter {
+    background: var(--card-bg);
+    border: 1px solid var(--hairline-color);
+    border-radius: 12px;
+}
+
+#changelist-filter h2 {
+    background: transparent;
+    color: var(--body-loud-color);
+    text-transform: none;
+}
+
+#changelist-filter li.selected a {
+    color: var(--link-fg);
+    font-weight: 600;
+}
+
+/* inputs and buttons */
+input[type=text], input[type=password], input[type=email], input[type=url],
+input[type=number], input[type=search], input[type=tel], textarea, select,
+.vTextField {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 7px 10px;
+    background: var(--card-bg);
+    color: var(--body-fg);
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: transparent;
+    box-shadow: 0 0 0 2px #4CC6F1;
+}
+
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-family: "Exo 2", var(--font-family-primary);
+    font-weight: 600;
+    transition: filter 0.15s, background 0.15s;
+}
+
+.button.default, input[type=submit].default, .submit-row input.default {
+    color: #fff;
+}
+
+.object-tools a {
+    border-radius: 8px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+}
+
+.submit-row {
+    border-radius: 12px;
+    border: 1px solid var(--hairline-color);
+    background: var(--card-bg);
+}
+
+ul.messagelist li {
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+/* risk level badge, same colors as the panel */
+.level {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.level::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.level-high { color: var(--level-high); background: color-mix(in srgb, var(--level-high) 12%, transparent); }
+.level-medium { color: var(--level-medium); background: color-mix(in srgb, var(--level-medium) 12%, transparent); }
+.level-low { color: var(--level-low); background: color-mix(in srgb, var(--level-low) 12%, transparent); }
+.level-none { color: var(--level-none); background: color-mix(in srgb, var(--level-none) 15%, transparent); }
+
+/* admin home: summary cards */
+.dashboard #content {
+    width: auto;
+    max-width: 1280px;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    padding: 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--hairline-color);
+    border-radius: 12px;
+}
+
+.stat-card .label {
+    color: var(--body-quiet-color);
+    font-size: 0.8rem;
+}
+
+.stat-card .value {
+    margin-top: 6px;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--body-loud-color);
+}
+
+.stat-card .levels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.stats-note {
+    color: var(--body-quiet-color);
+    margin: -12px 0 24px;
+}
+
+.stats-note summary {
+    cursor: pointer;
+    color: var(--link-fg);
+    font-weight: 500;
+}
+
+.stats-note p {
+    max-width: 760px;
+    margin-top: 8px;
+}
+
+/* long reason text in the customer list */
+td.field-top_reason_display {
+    min-width: 260px;
+}
+
+td.field-email, td.field-level_display, td.field-expected_loss_display, td.field-balance_display {
+    white-space: nowrap;
+}
+
+.quick-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+/* factors in the customer card */
+.factor-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.factor-list li {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--hairline-color);
+}
+
+.factor-list li:last-child {
+    border-bottom: none;
+}
+
+.factor-bar {
+    height: 6px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: var(--hairline-color);
+    overflow: hidden;
+    max-width: 320px;
+}
+
+.factor-bar span {
+    display: block;
+    height: 100%;
+    background: #4CC6F1;
+}
+
+.errorlist-snapshot {
+    margin: 8px 0 0;
+    padding-left: 18px;
+    color: var(--error-fg);
+}
+
+@media (max-width: 767px) {
+    #header, div.breadcrumbs, #content {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}

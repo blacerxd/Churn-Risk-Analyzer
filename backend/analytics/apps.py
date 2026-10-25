@@ -3,6 +3,7 @@ from django.apps import AppConfig
 
 class AnalyticsConfig(AppConfig):
     name = 'analytics'
+    verbose_name = 'Аналитика'
 
     def ready(self):
         # Импорт пакета регистрирует все признаки в реестре.

@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Начало</a> &rsaquo; Загрузка данных</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <p>Загрузка заменяет клиентов, услуги и транзакции целиком и сразу пересчитывает оценки.
+     Если снимок не прошёл проверку, данные не меняются.
+     Сейчас в базе клиентов: <strong>{{ summary.customers_total }}</strong>.</p>
+
+  <fieldset class="module aligned">
+    <h2>Снимок из исходной системы</h2>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-row">
+        {{ form.file.errors }}
+        <label for="{{ form.file.id_for_label }}">{{ form.file.label }}:</label>
+        {{ form.file }}
+        <div class="help">{{ form.file.help_text }}</div>
+      </div>
+      {% if errors %}
+      <div class="form-row">
+        <strong>Ошибки проверки ({{ errors_total }}{% if errors_total > errors|length %}, показаны первые {{ errors|length }}{% endif %}):</strong>
+        <ul class="errorlist-snapshot">{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+      <div class="submit-row">
+        <input type="submit" class="default" value="Загрузить снимок"
+               onclick="return confirm('Текущие данные будут заменены полностью. Продолжить?')">
+      </div>
+    </form>
+  </fieldset>
+
+  <fieldset class="module aligned">
+    <h2>Тестовые наборы</h2>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-row">
+        <p>Набор из кейса и демонстрационные сценарии из <code>sample-data/</code>.
+           Даты сдвигаются так, что опорная дата набора становится текущим моментом.</p>
+      </div>
+      <div class="submit-row">
+        <button type="submit" class="button" name="action" value="sample-extended"
+                onclick="return confirm('Текущие данные будут заменены полностью. Продолжить?')">Кейс + демо-сценарии</button>
+        <button type="submit" class="button default" name="action" value="sample"
+                onclick="return confirm('Текущие данные будут заменены полностью. Продолжить?')">Только набор кейса</button>
+      </div>
+    </form>
+  </fieldset>
+</div>
+{% endblock %}
