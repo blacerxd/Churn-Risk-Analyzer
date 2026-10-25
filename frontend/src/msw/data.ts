@@ -190,7 +190,9 @@ export function getCustomer(id: number, settings: ModelSettingsData): CustomerDe
     total_replenished_cents: seed.replenished,
     score,
     level,
+    top_reason: factors[0]?.explanation ?? 'Недостаточно данных для оценки',
     expected_loss_cents: services.reduce((sum, service) => sum + service.expected_loss_cents, 0),
+    calculated_at: score === null ? null : new Date().toISOString(),
     factors,
     services,
   }

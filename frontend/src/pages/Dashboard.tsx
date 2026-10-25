@@ -145,7 +145,7 @@ export default function Dashboard() {
     <div className="flex flex-col gap-6 font-['Inter']">
       <PageHeader
         title="Обзор"
-        subtitle={summary ? `Данные рассчитаны: ${formatDateTime(summary.calculated_at)}` : 'Риск оттока клиентов и денежные потери'}
+        subtitle={summary?.calculated_at ? `Данные рассчитаны: ${formatDateTime(summary.calculated_at)}` : 'Риск оттока клиентов и денежные потери'}
       />
 
       {isPending && <MetricsSkeleton />}

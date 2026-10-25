@@ -77,7 +77,16 @@
 
 ## `GET /api/v1/customers`
 
-Параметры: `level` (`high|medium|low|none`), `search` (по email), `ordering` (`id`, `email`, `balance`, `total_replenished`, `score` с префиксом `-` для убывания), `page`, `page_size`.
+Параметры:
+
+| Параметр | Значения |
+|---|---|
+| `level` | `high`, `medium`, `low`, `none` |
+| `search` | часть email без учёта регистра |
+| `ordering` | `id`, `email`, `balance`, `total_replenished`, `score`, `expected_loss`, с `-` по убыванию. По умолчанию `-score`. Клиенты без оценки всегда в конце |
+| `page`, `page_size` | по умолчанию 1 и 25, `page_size` не больше 100 |
+
+Недопустимое значение `level` или `ordering` — 400 `invalid` с полем в `errors`, страница за пределами списка — 404 `not_found`.
 
 ```json
 {
@@ -102,7 +111,9 @@
   "balance_cents": 12000, "bonus_balance_cents": 500, "bonus_usable": true,
   "withdraw_balance_cents": 0, "total_replenished_cents": 50000,
   "score": 78.5, "level": "high",
+  "top_reason": "Услуга истекает через 2 дня, автопродление выключено",
   "expected_loss_cents": 23500,
+  "calculated_at": "2026-10-25T10:00:00Z",
   "factors": [
     {"key": "expiring_no_autoprolong", "title": "Скоро истекает без автопродления",
      "value": 1.0, "weight": 40, "contribution": 40.0,
@@ -116,6 +127,12 @@
   ]
 }
 ```
+
+- `factors` — все признаки по убыванию вклада, `services` — все услуги клиента, включая удалённые
+  (у них `expected_loss_cents` = 0), по возрастанию `expires_at`.
+- `days_to_expiry` — целых суток от `calculated_at` до `expires_at`, отрицательное значение — оплата уже истекла.
+- До первого пересчёта: `level` = `none`, `score` и `calculated_at` = `null`, `factors` пустой.
+- Нет клиента — 404 `{"detail": "Клиент не найден", "code": "not_found"}`.
 
 ## `GET /api/v1/analytics/summary`
 
@@ -139,9 +156,17 @@
 ```json
 {"series": [
   {"date": "2026-10-20", "kind": "fact", "deleted_services": 3, "services_at_risk": 40},
-  {"date": "2026-10-26", "kind": "forecast", "expected_non_renewals": 5, "services_at_risk": 42}
+  {"date": "2026-10-26", "kind": "forecast", "expected_non_renewals": 0.58, "services_at_risk": 42}
 ]}
 ```
+
+- `days` — от 1 до 90, по умолчанию 30. Отсчёт от времени последнего пересчёта (`summary.calculated_at`).
+- `fact` — по дню на каждую дату окна: сколько услуг перешло в `deleted`. Истории в источнике нет,
+  она копится из разницы между загруженными снимками, поэтому точки начинаются с первого
+  обнаруженного удаления. Пока удалений не было, фактов нет. `services_at_risk` — по последнему
+  пересчёту на конец дня.
+- `forecast` — по дню на `days` дней вперёд: сумма вероятностей ухода владельцев услуг
+  (`active`, `suspended`, `prolong_wait`), у которых в этот день заканчивается оплата.
 
 ## `GET|PATCH /api/v1/model/settings`
 
@@ -177,7 +202,16 @@
 | `params.use_bonus_balance` | `true` или `false` |
 | Прочие ключи (в том числе `schema`) | ошибка «неизвестное поле» |
 
-Ошибки проверки — список `{"path": "weights.prolong_wait", "message": "допустимо от 0 до 100"}`, при ошибке ничего не сохраняется.
+Ошибки проверки — 400 `invalid`, при ошибке ничего не сохраняется. `errors` в том же виде, что у остальных
+эндпоинтов: ошибка поля — по пути к нему, ошибка раздела целиком — списком, ошибка всего тела — в `non_field_errors`.
+
+```json
+{"detail": "Некорректные данные", "code": "invalid",
+ "errors": {"weights": {"prolong_wait": ["допустимо от 0 до 100"]},
+            "thresholds": {"medium": ["порог среднего риска должен быть меньше порога высокого"]}}}
+```
+
+`{"weights": ["хотя бы один признак должен иметь вес больше 0"]}` — пример ошибки раздела.
 
 `schema` позволяет фронту нарисовать форму без хардкода признаков: тип поля, диапазон и значение по умолчанию (для кнопки «Сбросить»).
 
@@ -187,6 +221,7 @@
 |---|---|---|
 | POST | `/api/v1/auth/login` | `{username, password}` → 200 + cookie сессии, 400/401 при ошибке |
 | GET | `/api/v1/auth/me` | 200 `{id, username}` или 401/403 |
+| GET | `/api/v1/auth/config` | без сессии, `{"oidc_enabled": false}`: показывать ли кнопку SSO (`OIDC_ENABLED` в `.env`) |
 | POST | `/api/v1/auth/logout` | 204, сессия сброшена |
 | GET | `/api/v1/auth/csrf` | выставляет cookie `csrftoken` (нужен SPA до первого POST) |
 

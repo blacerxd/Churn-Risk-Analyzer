@@ -1,16 +1,25 @@
 from django.urls import path
 
-from api.views.auth import CsrfView, LoginView, LogoutView, MeView
+from api.views.analytics import ChurnChartView, SummaryView
+from api.views.auth import AuthConfigView, CsrfView, LoginView, LogoutView, MeView
+from api.views.customers import CustomerDetailView, CustomerListView
 from api.views.events import events
+from api.views.model_settings import ModelSettingsView
 from api.views.snapshot import SnapshotView
 
 app_name = 'api'
 
 urlpatterns = [
+    path('auth/config', AuthConfigView.as_view(), name='auth-config'),
     path('auth/csrf', CsrfView.as_view(), name='auth-csrf'),
     path('auth/login', LoginView.as_view(), name='auth-login'),
     path('auth/me', MeView.as_view(), name='auth-me'),
     path('auth/logout', LogoutView.as_view(), name='auth-logout'),
+    path('customers', CustomerListView.as_view(), name='customer-list'),
+    path('customers/<int:pk>', CustomerDetailView.as_view(), name='customer-detail'),
+    path('analytics/summary', SummaryView.as_view(), name='analytics-summary'),
+    path('analytics/churn-chart', ChurnChartView.as_view(), name='analytics-churn-chart'),
+    path('model/settings', ModelSettingsView.as_view(), name='model-settings'),
     path('events', events, name='events'),
     path('source/snapshot', SnapshotView.as_view(), name='source-snapshot'),
 ]

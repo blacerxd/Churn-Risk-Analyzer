@@ -19,7 +19,7 @@ export interface CustomersPage {
 }
 
 export interface Summary {
-  calculated_at: string
+  calculated_at: string | null
   customers_total: number
   by_level: Record<RiskLevel, number>
   services_at_risk: number
@@ -62,7 +62,9 @@ export interface CustomerDetailData {
   total_replenished_cents: number
   score: number | null
   level: RiskLevel
+  top_reason: string
   expected_loss_cents: number
+  calculated_at: string | null
   factors: Factor[]
   services: CustomerService[]
 }

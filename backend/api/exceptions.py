@@ -15,7 +15,8 @@ def api_exception_handler(exc, context):
         }
         return response
 
-    detail = getattr(exc, 'detail', '')
+    # Django's Http404 and PermissionDenied are converted by DRF, so take detail from the response.
+    detail = response.data.get('detail', '') if isinstance(response.data, dict) else ''
     response.data = {
         'detail': str(detail),
         'code': getattr(detail, 'code', None) or 'error',

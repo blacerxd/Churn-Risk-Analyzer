@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -9,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.authentication import SessionAuth
-from api.serializers import LoginSerializer, UserSerializer
+from api.serializers import AuthConfigSerializer, LoginSerializer, UserSerializer
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
@@ -25,6 +26,15 @@ class CsrfView(APIView):
     )
     def get(self, request):
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AuthConfigView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    @extend_schema(tags=['auth'], summary='Доступные способы входа', responses=AuthConfigSerializer)
+    def get(self, request):
+        return Response({'oidc_enabled': settings.OIDC_ENABLED})
 
 
 class LoginView(APIView):
