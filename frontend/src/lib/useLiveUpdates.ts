@@ -30,6 +30,8 @@ export function useLiveUpdates(): LiveStatus {
         void queryClient.invalidateQueries({ queryKey: queryKeys.customer })
         void queryClient.invalidateQueries({ queryKey: queryKeys.settings })
         void queryClient.invalidateQueries({ queryKey: queryKeys.churnChart })
+        void queryClient.invalidateQueries({ queryKey: queryKeys.recalculations })
+        void queryClient.invalidateQueries({ queryKey: queryKeys.statusEvents })
         setStatus({ connected: true, updatedAt: new Date() })
       })
 

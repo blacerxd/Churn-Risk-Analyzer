@@ -13,7 +13,7 @@ def test_login_success_creates_session(api_client, user):
     response = api_client.post(LOGIN_URL, {'username': 'analyst', 'password': 'secret-pass'}, format='json')
 
     assert response.status_code == 200
-    assert response.json() == {'id': user.id, 'username': 'analyst'}
+    assert response.json() == {'id': user.id, 'username': 'analyst', 'is_staff': False, 'is_superuser': False}
     assert api_client.get(ME_URL).status_code == 200
 
 
@@ -70,7 +70,7 @@ def test_me_returns_current_user(auth_client, user):
     response = auth_client.get(ME_URL)
 
     assert response.status_code == 200
-    assert response.json() == {'id': user.id, 'username': 'analyst'}
+    assert response.json() == {'id': user.id, 'username': 'analyst', 'is_staff': False, 'is_superuser': False}
 
 
 def test_logout_ends_session(api_client, user):

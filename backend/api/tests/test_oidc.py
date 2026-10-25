@@ -4,6 +4,7 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import override_settings
+from django.utils import timezone
 
 pytestmark = pytest.mark.django_db
 
@@ -23,6 +24,7 @@ OIDC = override_settings(
     OIDC_AUTHENTICATION_CALLBACK_URL='oidc-callback',
     LOGIN_REDIRECT_URL='/',
     LOGIN_REDIRECT_URL_FAILURE='/login?error=sso',
+    OIDC_CREATE_USER=False,
 )
 CLAIMS = {'sub': '1', 'email': 'analyst@example.test', 'email_verified': True}
 
@@ -62,32 +64,62 @@ def test_login_redirects_to_provider(client):
     assert query['state']
 
 
+@pytest.fixture
+def analyst(db):
+    # created by an admin and already signed in once with the password
+    user = get_user_model().objects.create_user('anna', 'analyst@example.test', 'Long-pass-123')
+    user.last_login = timezone.now()
+    user.save()
+    return user
+
+
 @OIDC
-def test_callback_creates_user_and_session(client):
+def test_callback_signs_in_existing_user_by_email(client, analyst):
     _, query = start_login(client)
 
-    response = finish_login(client, query['state'][0])
+    response = finish_login(client, query['state'][0], CLAIMS | {'email': 'ANALYST@example.test'})
 
     assert response.status_code == 302
     assert response['Location'] == '/customers'
-    user = get_user_model().objects.get()
-    assert user.username == 'analyst@example.test'
-    assert not user.is_staff
-    me = client.get('/api/v1/auth/me')
-    assert me.json()['username'] == 'analyst@example.test'
-
-
-@OIDC
-def test_second_login_reuses_user(client):
-    for _ in range(2):
-        _, query = start_login(client)
-        finish_login(client, query['state'][0])
-
+    assert client.get('/api/v1/auth/me').json()['username'] == 'anna'
     assert get_user_model().objects.count() == 1
 
 
 @OIDC
-def test_unverified_email_is_rejected(client):
+def test_unknown_email_is_not_created(client, analyst):
+    _, query = start_login(client)
+
+    response = finish_login(client, query['state'][0], CLAIMS | {'email': 'stranger@example.test'})
+
+    assert response['Location'] == '/login?error=sso'
+    assert get_user_model().objects.count() == 1
+
+
+@OIDC
+def test_first_sign_in_must_be_with_password(client, analyst):
+    analyst.last_login = None
+    analyst.save()
+    _, query = start_login(client)
+
+    response = finish_login(client, query['state'][0])
+
+    assert response['Location'] == '/login?error=sso'
+    assert client.get('/api/v1/auth/me').status_code == 401
+
+
+@OIDC
+def test_blocked_user_is_refused(client, analyst):
+    analyst.is_active = False
+    analyst.save()
+    _, query = start_login(client)
+
+    response = finish_login(client, query['state'][0])
+
+    assert response['Location'] == '/login?error=sso'
+
+
+@OIDC
+def test_unverified_email_is_rejected(client, analyst):
     _, query = start_login(client)
 
     response = finish_login(client, query['state'][0], CLAIMS | {'email_verified': False})
@@ -97,18 +129,7 @@ def test_unverified_email_is_rejected(client):
 
 
 @OIDC
-def test_staff_account_is_not_taken_over(client):
-    get_user_model().objects.create_superuser('analyst@example.test', 'analyst@example.test', 'x')
-    _, query = start_login(client)
-
-    response = finish_login(client, query['state'][0])
-
-    assert response['Location'] == '/login?error=sso'
-    assert client.get('/api/v1/auth/me').status_code == 401
-
-
-@OIDC
-def test_external_next_is_ignored(client):
+def test_external_next_is_ignored(client, analyst):
     _, query = start_login(client, 'https://evil.example/')
 
     response = finish_login(client, query['state'][0])

@@ -3,6 +3,193 @@ info:
   title: Churn Risk Analyzer API
   version: 1.0.0
 paths:
+  /api/v1/admin/recalculations:
+    get:
+      operationId: api_v1_admin_recalculations_list
+      summary: История пересчётов
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: До 100, по умолчанию 25
+      tags:
+      - administration
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRecalculationList'
+          description: ''
+  /api/v1/admin/status-events:
+    get:
+      operationId: api_v1_admin_status_events_list
+      description: Копится из разницы между загруженными снимками.
+      summary: Журнал смен статусов услуг
+      parameters:
+      - in: query
+        name: customer_id
+        schema:
+          type: integer
+      - in: query
+        name: new_status
+        schema:
+          enum:
+          - active
+          - suspended
+          - prolong_wait
+          - deleted
+          - blocked
+          type: string
+          minLength: 1
+        description: |-
+          * `active` - active
+          * `suspended` - suspended
+          * `prolong_wait` - prolong_wait
+          * `deleted` - deleted
+          * `blocked` - blocked
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: До 100, по умолчанию 25
+      - in: query
+        name: service_id
+        schema:
+          type: integer
+      tags:
+      - administration
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedStatusEventList'
+          description: ''
+  /api/v1/admin/users:
+    get:
+      operationId: api_v1_admin_users_list
+      summary: Пользователи панели
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: До 100, по умолчанию 25
+      - in: query
+        name: search
+        schema:
+          type: string
+          minLength: 1
+        description: Часть логина или email
+      tags:
+      - administration
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminUserList'
+          description: ''
+    post:
+      operationId: api_v1_admin_users_create
+      summary: Создать пользователя
+      tags:
+      - administration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminUser'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/v1/admin/users/{id}:
+    get:
+      operationId: api_v1_admin_users_retrieve
+      summary: Пользователь
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - administration
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+    patch:
+      operationId: api_v1_admin_users_partial_update
+      description: Блокировка (is_active), права администратора (is_staff, только
+        суперпользователь), новый пароль.
+      summary: Изменить пользователя
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - administration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUser'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
   /api/v1/analytics/churn-chart:
     get:
       operationId: api_v1_analytics_churn_chart_retrieve
@@ -340,6 +527,71 @@ paths:
           description: Нет токена или токен неверный
 components:
   schemas:
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Имя пользователя
+          description: Обязательное поле. Не более 150 символов. Только буквы, цифры
+            и символы @/./+/-/_.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        email:
+          title: Адрес электронной почты
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Активный
+          description: Отметьте, если пользователь должен считаться активным. Уберите
+            эту отметку вместо удаления учётной записи.
+        is_staff:
+          type: boolean
+          title: Статус персонала
+          description: Отметьте, если пользователь может входить в административную
+            часть сайта.
+        is_superuser:
+          type: boolean
+          readOnly: true
+          title: Статус суперпользователя
+          description: Указывает, что пользователь имеет все права без явного их назначения.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата регистрации
+        last_login:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Последний вход
+        password:
+          type: string
+          writeOnly: true
+          description: Обязателен при создании; при изменении задаёт новый пароль
+      required:
+      - date_joined
+      - id
+      - is_superuser
+      - last_login
+      - username
     AuthConfig:
       type: object
       properties:
@@ -614,6 +866,134 @@ components:
       - schema
       - thresholds
       - weights
+    PaginatedAdminUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUser'
+    PaginatedRecalculationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recalculation'
+    PaginatedStatusEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusEvent'
+    PatchedAdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Имя пользователя
+          description: Обязательное поле. Не более 150 символов. Только буквы, цифры
+            и символы @/./+/-/_.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        email:
+          title: Адрес электронной почты
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Активный
+          description: Отметьте, если пользователь должен считаться активным. Уберите
+            эту отметку вместо удаления учётной записи.
+        is_staff:
+          type: boolean
+          title: Статус персонала
+          description: Отметьте, если пользователь может входить в административную
+            часть сайта.
+        is_superuser:
+          type: boolean
+          readOnly: true
+          title: Статус суперпользователя
+          description: Указывает, что пользователь имеет все права без явного их назначения.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата регистрации
+        last_login:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Последний вход
+        password:
+          type: string
+          writeOnly: true
+          description: Обязателен при создании; при изменении задаёт новый пароль
     PatchedModelSettingsPatch:
       type: object
       properties:
@@ -630,6 +1010,45 @@ components:
         params:
           type: object
           additionalProperties: {}
+    Recalculation:
+      type: object
+      properties:
+        id:
+          type: integer
+        reason:
+          type: string
+          description: snapshot или settings
+        calculated_at:
+          type: string
+          format: date-time
+        duration_seconds:
+          type: number
+          format: double
+        customers_total:
+          type: integer
+        by_level:
+          $ref: '#/components/schemas/SnapshotLevels'
+        score_avg:
+          type: number
+          format: double
+          nullable: true
+        services_at_risk:
+          type: integer
+        revenue_at_risk_cents:
+          type: integer
+        expected_loss_cents:
+          type: integer
+      required:
+      - by_level
+      - calculated_at
+      - customers_total
+      - duration_seconds
+      - expected_loss_cents
+      - id
+      - reason
+      - revenue_at_risk_cents
+      - score_avg
+      - services_at_risk
     SettingsField:
       type: object
       properties:
@@ -700,6 +1119,22 @@ components:
       required:
       - message
       - path
+    SnapshotLevels:
+      type: object
+      properties:
+        high:
+          type: integer
+        medium:
+          type: integer
+        low:
+          type: integer
+        none:
+          type: integer
+      required:
+      - high
+      - low
+      - medium
+      - none
     SnapshotResult:
       type: object
       properties:
@@ -735,6 +1170,29 @@ components:
           description: JSON-файл снимка
       required:
       - file
+    StatusEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        service_id:
+          type: integer
+        customer_id:
+          type: integer
+        old_status:
+          type: string
+        new_status:
+          type: string
+        detected_at:
+          type: string
+          format: date-time
+      required:
+      - customer_id
+      - detected_at
+      - id
+      - new_status
+      - old_status
+      - service_id
     Summary:
       type: object
       properties:
@@ -794,13 +1252,25 @@ components:
           readOnly: true
         username:
           type: string
+          readOnly: true
           title: Имя пользователя
           description: Обязательное поле. Не более 150 символов. Только буквы, цифры
             и символы @/./+/-/_.
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
+        is_staff:
+          type: boolean
+          readOnly: true
+          title: Статус персонала
+          description: Отметьте, если пользователь может входить в административную
+            часть сайта.
+        is_superuser:
+          type: boolean
+          readOnly: true
+          title: Статус суперпользователя
+          description: Указывает, что пользователь имеет все права без явного их назначения.
       required:
       - id
+      - is_staff
+      - is_superuser
       - username
   securitySchemes:
     cookieAuth:

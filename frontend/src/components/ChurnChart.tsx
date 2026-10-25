@@ -3,15 +3,17 @@ import { useQuery } from '@tanstack/react-query'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { ApiError, apiFetch, queryKeys } from '../lib/api'
 import type { ChurnChartData } from '../lib/api'
-import { cardClass, headingClass, mutedClass, segmentActiveClass, segmentClass, segmentIdleClass } from './styles'
+import { cardClass, headingClass, mutedBase, mutedClass, segmentActiveClass, segmentClass, segmentIdleClass } from './styles'
 import { EmptyState, ErrorState, Skeleton } from './ui'
 
 const RANGES = [14, 30, 90] as const
 type Range = (typeof RANGES)[number]
 
-// Оба цвета различимы и на белом, и на тёмном фоне.
+// Токены графика: факт — голубая линия, прогноз — оранжевая пунктирная. Цвета читаются и на светлой, и на тёмной теме.
 const FACT_COLOR = '#4CC6F1'
 const FORECAST_COLOR = '#E97C35'
+const GRID_COLOR = 'var(--color-line)'
+const AXIS_TEXT = { fill: 'var(--color-muted)', fontSize: 12, fontFamily: 'Inter, sans-serif' }
 const number = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 })
 
 interface Row {
@@ -42,7 +44,7 @@ export default function ChurnChart() {
     <section className={cardClass} aria-labelledby="churn-title">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 id="churn-title" className={`${headingClass} text-lg`}>
+          <h2 id="churn-title" className={`${headingClass} text-2xl leading-7`}>
             Отток: факт и прогноз
           </h2>
           <p className={`${mutedClass} mt-1`}>Удалённые услуги и ожидаемые непродления по дням</p>
@@ -70,33 +72,36 @@ export default function ChurnChart() {
         )}
         {data && rows.length > 0 && (
           <>
-            <div className="h-64 w-full font-['Inter'] text-xs" role="img" aria-label="График оттока: факт и прогноз">
+            <div className="h-64 w-full font-sans text-xs" role="img" aria-label="График оттока: факт и прогноз">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#a3a3a3" strokeOpacity={0.3} />
-                  <XAxis dataKey="date" tickFormatter={formatDay} stroke="#737373" minTickGap={16} />
-                  <YAxis stroke="#737373" width={32} />
+                  <CartesianGrid vertical={false} stroke={GRID_COLOR} />
+                  <XAxis dataKey="date" tickFormatter={formatDay} tick={AXIS_TEXT} axisLine={false} tickLine={false} minTickGap={16} />
+                  <YAxis tick={AXIS_TEXT} axisLine={false} tickLine={false} width={32} />
                   <Tooltip
                     labelFormatter={(label) => new Date(String(label)).toLocaleDateString('ru-RU')}
                     formatter={(value) => number.format(Number(value))}
-                    contentStyle={{ borderRadius: 12, fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#000' }}
+                    contentStyle={{ borderRadius: 14, border: 'none', background: '#182D48', fontFamily: 'Inter, sans-serif', fontSize: 12 }}
+                    labelStyle={{ color: 'rgb(255 255 255 / 0.8)' }}
+                    itemStyle={{ color: '#fff' }}
                   />
-                  <Legend />
-                  <Line type="monotone" dataKey="fact" name="Факт: удалено услуг" stroke={FACT_COLOR} strokeWidth={2.5} dot={false} connectNulls />
+                  <Legend iconType="plainline" wrapperStyle={{ fontSize: 14, fontFamily: 'Inter, sans-serif' }} />
+                  <Line type="monotone" dataKey="fact" name="Факт: удалено услуг" stroke={FACT_COLOR} strokeWidth={3} strokeLinecap="round" dot={false} activeDot={{ r: 6, fill: FACT_COLOR, stroke: 'var(--color-surface)', strokeWidth: 3 }} connectNulls />
                   <Line
                     type="monotone"
                     dataKey="forecast"
                     name="Прогноз: непродления"
                     stroke={FORECAST_COLOR}
-                    strokeWidth={2.5}
-                    strokeDasharray="6 4"
+                    strokeWidth={3}
+                    strokeLinecap="round"
+                    strokeDasharray="7 7"
                     dot={false}
                     connectNulls
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            {!hasFacts && <p className={`${mutedClass} mt-2 text-xs`}>Фактов пока нет: они копятся с момента запуска системы, показан только прогноз.</p>}
+            {!hasFacts && <p className={`${mutedBase} mt-2 text-xs`}>Фактов пока нет: они копятся с момента запуска системы, показан только прогноз.</p>}
           </>
         )}
       </div>

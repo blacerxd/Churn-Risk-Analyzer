@@ -42,8 +42,29 @@ services:
     ports:
       - "127.0.0.1:8080:80"
 
+  # Collector for /metrics; UI and API on http://localhost:9090 (not published outside)
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        printf %s "$$METRICS_TOKEN" > /tmp/metrics-token &&
+        exec /bin/prometheus --config.file=/etc/prometheus/prometheus.yml
+        --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=15d
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+
   # SSO provider for the demo: COMPOSE_PROFILES=oidc and OIDC_ENABLED=true in .env.
-  # Login is passwordless with a FIDO2 key or passkey, see keycloak/churn-realm.json.
+  # Login is passwordless with a FIDO2 key or passkey, see keycloak/import/churn-realm.json;
+  # login pages use the Aéza theme from keycloak/themes/aeza.
   # Dev mode with the embedded database on a volume, so registered keys survive restarts;
   # the realm file is imported only into an empty volume.
   keycloak:
@@ -58,14 +79,16 @@ services:
       KC_PROXY_HEADERS: xforwarded
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-}
-      # used by placeholders in keycloak/churn-realm.json
+      # used by placeholders in keycloak/import/churn-realm.json
       OIDC_PUBLIC_URL: ${OIDC_PUBLIC_URL:-http://localhost:8080}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
-      OIDC_DEMO_PASSWORD: ${OIDC_DEMO_PASSWORD:-}
+      KEYCLOAK_PROVISIONER_SECRET: ${KEYCLOAK_PROVISIONER_SECRET:-}
     volumes:
       - keycloak-data:/opt/keycloak/data
-      - ./keycloak:/opt/keycloak/data/import:ro
+      - ./keycloak/import:/opt/keycloak/data/import:ro
+      - ./keycloak/themes:/opt/keycloak/themes:ro
 
 volumes:
   pgdata:
   keycloak-data:
+  prometheus-data:

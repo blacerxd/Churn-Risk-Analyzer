@@ -2,6 +2,7 @@
   "realm": "churn",
   "displayName": "Churn Risk Analyzer",
   "enabled": true,
+  "loginTheme": "aeza",
   "sslRequired": "external",
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
@@ -32,26 +33,34 @@
       "attributes": {
         "pkce.code.challenge.method": "S256"
       }
+    },
+    {
+      "clientId": "churn-provisioner",
+      "name": "Panel user provisioning",
+      "description": "Service account of the panel: mirrors users created in the admin section",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${KEYCLOAK_PROVISIONER_SECRET}",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false
     }
   ],
   "users": [
     {
-      "username": "analyst",
-      "email": "analyst@example.com",
-      "emailVerified": true,
-      "firstName": "Demo",
-      "lastName": "Analyst",
+      "username": "service-account-churn-provisioner",
       "enabled": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "${OIDC_DEMO_PASSWORD}",
-          "temporary": false
-        }
-      ],
-      "requiredActions": [
-        "webauthn-register-passwordless"
-      ]
+      "serviceAccountClientId": "churn-provisioner",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users"
+        ]
+      }
     }
   ],
   "browserFlow": "browser-fido",
@@ -168,5 +177,6 @@
         "included": "false"
       }
     }
-  ]
+  ],
+  "editUsernameAllowed": true
 }

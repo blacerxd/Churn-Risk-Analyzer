@@ -1,5 +1,10 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from rest_framework import serializers
+
+from api import keycloak
 
 
 class LoginSerializer(serializers.Serializer):
@@ -10,7 +15,8 @@ class LoginSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ['id', 'username']
+        fields = ['id', 'username', 'is_staff', 'is_superuser']
+        read_only_fields = fields
 
 
 class SnapshotUploadSerializer(serializers.Serializer):
@@ -181,3 +187,123 @@ class ModelSettingsPatchSerializer(serializers.Serializer):
     weights = serializers.DictField(child=serializers.FloatField(), required=False)
     thresholds = serializers.DictField(child=serializers.FloatField(), required=False)
     params = serializers.DictField(child=serializers.JSONField(), required=False)
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True, required=False, trim_whitespace=False, style={'input_type': 'password'},
+        help_text='Обязателен при создании; при изменении задаёт новый пароль',
+    )
+
+    class Meta:
+        model = get_user_model()
+        fields = [
+            'id', 'username', 'first_name', 'last_name', 'email', 'is_active', 'is_staff', 'is_superuser',
+            'date_joined', 'last_login', 'password',
+        ]
+        read_only_fields = ['is_superuser', 'date_joined', 'last_login']
+
+    def validate_email(self, value):
+        # SSO finds the panel user by email, so it must be set and unique
+        if not value:
+            raise serializers.ValidationError('Укажите email: по нему пользователь входит через SSO')
+        users = get_user_model().objects.filter(email__iexact=value)
+        if self.instance is not None:
+            users = users.exclude(pk=self.instance.pk)
+        if users.exists():
+            raise serializers.ValidationError('Пользователь с таким email уже есть')
+        return value
+
+    def validate(self, attrs):
+        request = self.context['request']
+        target = self.instance
+        if target is None:
+            missing = {field: ['Обязательное поле'] for field in ('email', 'password') if not attrs.get(field)}
+            if missing:
+                raise serializers.ValidationError(missing)
+        if attrs.get('password'):
+            try:
+                validate_password(attrs['password'], user=target)
+            except DjangoValidationError as exc:
+                raise serializers.ValidationError({'password': list(exc.messages)}) from None
+        if target is not None:
+            if target.is_superuser and not request.user.is_superuser:
+                raise serializers.ValidationError('Суперпользователя может изменить только суперпользователь')
+            if target == request.user:
+                for field in ('is_active', 'is_staff'):
+                    if field in attrs and attrs[field] != getattr(target, field):
+                        raise serializers.ValidationError({field: ['Нельзя изменить у своей учётной записи']})
+        if 'is_staff' in attrs and attrs['is_staff'] != getattr(target, 'is_staff', False) and not request.user.is_superuser:
+            raise serializers.ValidationError({'is_staff': ['Права администратора выдаёт только суперпользователь']})
+        return attrs
+
+    # The panel user and its SSO copy in Keycloak are saved together: if Keycloak refuses,
+    # nothing is created or changed in the panel either.
+    @transaction.atomic
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        user = get_user_model()(**validated_data)
+        user.set_password(password)
+        user.save()
+        self._sync(lambda: keycloak.create_user(user, password))
+        return user
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        old_username = instance.username
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        self._sync(lambda: keycloak.update_user(instance, password, username=old_username))
+        return instance
+
+    @staticmethod
+    def _sync(call):
+        if not keycloak.enabled():
+            return
+        try:
+            call()
+        except keycloak.KeycloakError as exc:
+            raise serializers.ValidationError({'non_field_errors': [f'SSO: {exc}']}) from None
+
+
+class SnapshotLevelsSerializer(serializers.Serializer):
+    high = serializers.IntegerField(source='customers_high')
+    medium = serializers.IntegerField(source='customers_medium')
+    low = serializers.IntegerField(source='customers_low')
+    none = serializers.IntegerField(source='customers_none')
+
+
+class RecalculationSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    reason = serializers.CharField(help_text='snapshot или settings')
+    calculated_at = serializers.DateTimeField()
+    duration_seconds = serializers.FloatField()
+    customers_total = serializers.IntegerField()
+    by_level = SnapshotLevelsSerializer(source='*')
+    score_avg = serializers.FloatField(allow_null=True)
+    services_at_risk = serializers.IntegerField()
+    revenue_at_risk_cents = serializers.IntegerField(source='revenue_at_risk')
+    expected_loss_cents = serializers.IntegerField(source='expected_loss')
+
+
+class StatusEventQuerySerializer(serializers.Serializer):
+    new_status = serializers.ChoiceField(['active', 'suspended', 'prolong_wait', 'deleted', 'blocked'], required=False)
+    customer_id = serializers.IntegerField(required=False)
+    service_id = serializers.IntegerField(required=False)
+
+
+class StatusEventSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    service_id = serializers.IntegerField()
+    customer_id = serializers.IntegerField()
+    old_status = serializers.CharField()
+    new_status = serializers.CharField()
+    detected_at = serializers.DateTimeField()
+
+
+class AdminUserQuerySerializer(serializers.Serializer):
+    search = serializers.CharField(required=False, help_text='Часть логина или email')

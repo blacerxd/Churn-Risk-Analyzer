@@ -19,6 +19,8 @@ def env_list(name, default=''):
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 DEBUG = env_bool('DJANGO_DEBUG')
 ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
+# Service name inside the Compose network: Prometheus scrapes backend:8000/metrics directly
+ALLOWED_HOSTS.append('backend')
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
 
 # TLS ends on the host nginx, the container nginx passes the scheme through.
@@ -134,6 +136,12 @@ METRICS_TOKEN = os.environ.get('METRICS_TOKEN', '')
 
 AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
 
+# Users created in the admin section are mirrored into the bundled Keycloak (api/keycloak.py)
+KEYCLOAK_REALM_URL = (os.environ.get('OIDC_ISSUER_INTERNAL_URL') or 'http://keycloak:8080/kc/realms/churn').rstrip('/')
+KEYCLOAK_ADMIN_URL = KEYCLOAK_REALM_URL.replace('/realms/', '/admin/realms/', 1)
+KEYCLOAK_PROVISIONER_CLIENT_ID = os.environ.get('KEYCLOAK_PROVISIONER_CLIENT_ID', 'churn-provisioner')
+KEYCLOAK_PROVISIONER_SECRET = os.environ.get('KEYCLOAK_PROVISIONER_SECRET', '')
+
 # SSO through any OIDC provider; endpoint paths default to Keycloak's layout.
 # The browser is sent to OIDC_ISSUER_URL, the backend calls OIDC_ISSUER_INTERNAL_URL directly.
 OIDC_ENABLED = env_bool('OIDC_ENABLED')
@@ -157,6 +165,8 @@ if OIDC_ENABLED:
     OIDC_OP_JWKS_ENDPOINT = os.environ.get(
         'OIDC_OP_JWKS_ENDPOINT', f'{_issuer_internal}/protocol/openid-connect/certs')
     OIDC_AUTHENTICATION_CALLBACK_URL = 'oidc-callback'
+    # SSO only signs in users created in the admin section, never creates them
+    OIDC_CREATE_USER = False
     LOGIN_REDIRECT_URL = '/'
     LOGIN_REDIRECT_URL_FAILURE = '/login?error=sso'
 

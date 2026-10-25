@@ -9,6 +9,12 @@ def clear_cache():
 
 
 @pytest.fixture(autouse=True)
+def no_keycloak_sync(settings):
+    # A local .env may enable SSO; tests that need the Keycloak sync turn it on themselves
+    settings.KEYCLOAK_PROVISIONER_SECRET = ''
+
+
+@pytest.fixture(autouse=True)
 def plain_static_storage(settings):
     # The manifest storage needs collectstatic output, which exists only in the container
     settings.STORAGES = {

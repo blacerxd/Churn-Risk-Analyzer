@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { EmptyState, ErrorState, PageHeader, RiskBadge, Skeleton } from '../components/ui'
-import { btnSecondary, cardBase, inputClass, segmentActiveClass, segmentClass, segmentIdleClass, tableHeadClass } from '../components/styles'
+import { Icon } from '../components/icons'
+import { EmptyState, ErrorState, PageHeader, RiskBadge, ScoreBar, Skeleton } from '../components/ui'
+import { btnGhost, btnSecondary, cardBase, inputClass, mutedClass, segmentActiveClass, segmentClass, segmentIdleClass, tableHeadClass } from '../components/styles'
 import { ApiError, apiFetch, queryKeys } from '../lib/api'
 import type { CustomersPage, RiskLevel } from '../lib/api'
-import { LEVEL_LABEL, formatEuro, formatInt, formatScore } from '../lib/format'
+import { LEVEL_LABEL, formatEuro, formatInt } from '../lib/format'
 
 type SortKey = 'id' | 'email' | 'balance' | 'total_replenished' | 'score'
 
@@ -22,7 +23,7 @@ function parsePositive(value: string | null, fallback: number): number {
 
 function SortIndicator({ direction }: { direction: 'asc' | 'desc' | null }) {
   return (
-    <span aria-hidden="true" className={direction ? 'text-[#4CC6F1]' : 'text-neutral-400'}>
+    <span aria-hidden="true" className={direction ? 'text-ink' : 'text-muted'}>
       {direction === 'asc' ? '↑' : direction === 'desc' ? '↓' : '↕'}
     </span>
   )
@@ -115,21 +116,22 @@ export default function Customers() {
   ]
 
   return (
-    <div className="flex flex-col gap-6 font-['Inter']">
+    <div className="flex flex-col gap-6 font-sans">
       <PageHeader title="Клиенты" subtitle="Список клиентов с оценкой риска оттока" />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="w-full lg:max-w-sm">
+        <div className="relative w-full lg:max-w-sm">
           <label htmlFor="customers-search" className="sr-only">
             Поиск по email
           </label>
+          <Icon name="search" className="pointer-events-none absolute left-3.5 top-3 h-5 w-5 text-muted" />
           <input
             id="customers-search"
             type="search"
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Поиск по email"
-            className={inputClass()}
+            className={inputClass({ pad: 'pl-11 pr-4' })}
           />
         </div>
 
@@ -154,11 +156,11 @@ export default function Customers() {
       {isError && <ErrorState message={error instanceof ApiError ? error.message : 'Попробуйте обновить страницу'} onRetry={() => void refetch()} />}
 
       {!isError && (
-        <section className={cardBase} aria-busy={isFetching}>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[960px]">
+        <section className={`${cardBase} overflow-hidden`} aria-busy={isFetching}>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[1040px] border-collapse">
               <thead>
-                <tr className="border-b border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
+                <tr className="bg-surface-2">
                   {columns.map((column) => {
                     const active = sortColumn === column.key
                     const direction = active ? sortDirection : null
@@ -167,14 +169,12 @@ export default function Customers() {
                         key={column.key}
                         scope="col"
                         aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'}
-                        className={`${tableHeadClass} ${column.align === 'right' ? 'text-right' : ''}`}
+                        className={`${tableHeadClass} border-b border-line ${column.align === 'right' ? 'text-right' : ''}`}
                       >
                         <button
                           type="button"
                           onClick={() => toggleSort(column.key)}
-                          className={`inline-flex items-center gap-1 uppercase tracking-wider hover:text-[#182D48] focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] dark:hover:text-white ${
-                            active ? 'text-[#182D48] dark:text-white' : ''
-                          }`}
+                          className={`inline-flex min-h-8 items-center gap-1 rounded uppercase tracking-[0.06em] hover:text-ink ${active ? 'text-ink' : ''}`}
                         >
                           {column.title}
                           <SortIndicator direction={direction} />
@@ -182,16 +182,17 @@ export default function Customers() {
                       </th>
                     )
                   })}
-                  <th scope="col" className={tableHeadClass}>Уровень</th>
-                  <th scope="col" className={tableHeadClass}>Главная причина</th>
+                  <th scope="col" className={`${tableHeadClass} border-b border-line`}>Уровень</th>
+                  <th scope="col" className={`${tableHeadClass} border-b border-line`}>Главная причина</th>
+                  <th scope="col" className={`${tableHeadClass} border-b border-line text-right`}>Ожидаемая потеря</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-200 text-sm dark:divide-neutral-800">
+              <tbody className="divide-y divide-line text-sm">
                 {isPending &&
                   Array.from({ length: 8 }, (_, index) => (
                     <tr key={index}>
-                      <td colSpan={7} className="px-4 py-3">
-                        <Skeleton className="h-6 w-full" />
+                      <td colSpan={8} className="px-4 py-3">
+                        <Skeleton className="h-8 w-full" />
                       </td>
                     </tr>
                   ))}
@@ -202,31 +203,63 @@ export default function Customers() {
                     tabIndex={0}
                     onClick={() => openCustomer(customer.id)}
                     onKeyDown={(event) => handleRowKeyDown(event, customer.id)}
-                    className="cursor-pointer hover:bg-neutral-50 focus:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#4CC6F1] dark:hover:bg-neutral-950 dark:focus:bg-neutral-950"
+                    className="h-16 cursor-pointer transition-colors hover:bg-hover focus-visible:bg-hover focus-visible:outline-offset-[-2px]"
                   >
                     <td className="px-4 py-3 font-semibold tabular-nums">{customer.id}</td>
-                    <td className="max-w-[240px] truncate px-4 py-3" title={customer.email}>
+                    <td className="max-w-[240px] truncate px-4 py-3 font-semibold" title={customer.email}>
                       {customer.email}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatEuro(customer.balance_cents)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-neutral-600 dark:text-neutral-400">
-                      {formatEuro(customer.total_replenished_cents)}
+                    <td className="px-4 py-3 text-right tabular-nums text-muted">{formatEuro(customer.total_replenished_cents)}</td>
+                    <td className="px-4 py-3">
+                      <ScoreBar customer={customer} />
                     </td>
-                    <td className="px-4 py-3 font-semibold tabular-nums">{formatScore(customer.score)}</td>
                     <td className="px-4 py-3">
                       <RiskBadge level={customer.level} />
                     </td>
-                    <td className="max-w-[320px] px-4 py-3 text-neutral-600 dark:text-neutral-400">{customer.top_reason}</td>
+                    <td className="max-w-[320px] px-4 py-3 text-muted">{customer.top_reason}</td>
+                    <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatEuro(customer.expected_loss_cents)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
+          {/* Мобильная версия: таблица превращается в карточки */}
+          <ul className="flex flex-col gap-3 p-4 md:hidden">
+            {isPending &&
+              Array.from({ length: 5 }, (_, index) => (
+                <li key={index}>
+                  <Skeleton className="h-28 w-full" />
+                </li>
+              ))}
+            {data?.results.map((customer) => (
+              <li key={customer.id}>
+                <button
+                  type="button"
+                  onClick={() => openCustomer(customer.id)}
+                  className="flex min-h-11 w-full flex-col gap-2.5 rounded-panel border border-line bg-surface-2 p-4 text-left"
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <strong className="break-all font-sans text-sm">{customer.email}</strong>
+                    <RiskBadge level={customer.level} />
+                  </span>
+                  <ScoreBar customer={customer} showLoss />
+                  <span className={mutedClass}>{customer.top_reason}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+
           {data && data.results.length === 0 && (
             <EmptyState
               title="Клиенты не найдены"
               hint="Измените поисковый запрос или сбросьте фильтр по уровню риска."
+              visual={
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-black text-accent">
+                  <Icon name="search" className="h-6 w-6" />
+                </span>
+              }
               action={
                 <button
                   type="button"
@@ -243,14 +276,14 @@ export default function Customers() {
           )}
 
           {data && data.count > 0 && (
-            <div className="flex flex-col gap-3 border-t border-neutral-200 p-4 dark:border-neutral-800 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-500">
+            <div className="flex flex-col gap-3 border-t border-line p-4 sm:flex-row sm:items-center sm:justify-between md:px-6">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted">
                 <span>
                   Показано {formatInt(from)}–{formatInt(to)} из {formatInt(data.count)}
                 </span>
                 <label className="flex items-center gap-2 whitespace-nowrap">
                   На странице
-                  <select value={pageSize} onChange={handlePageSize} className={inputClass({ size: 'w-auto py-1' })}>
+                  <select value={pageSize} onChange={handlePageSize} className={inputClass({ size: 'w-auto min-h-10 py-0' })}>
                     {PAGE_SIZES.map((size) => (
                       <option key={size} value={size}>
                         {size}
@@ -261,13 +294,13 @@ export default function Customers() {
               </div>
 
               <nav className="flex items-center gap-2" aria-label="Пагинация">
-                <button type="button" className={btnSecondary} disabled={page <= 1} onClick={() => updateParams({ page: page - 1 === 1 ? null : String(page - 1) })}>
+                <button type="button" className={btnGhost} disabled={page <= 1} onClick={() => updateParams({ page: page - 1 === 1 ? null : String(page - 1) })}>
                   Назад
                 </button>
-                <span className="px-2 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
+                <span className="px-2 text-sm tabular-nums text-muted">
                   {page} / {totalPages}
                 </span>
-                <button type="button" className={btnSecondary} disabled={page >= totalPages} onClick={() => updateParams({ page: String(page + 1) })}>
+                <button type="button" className={btnGhost} disabled={page >= totalPages} onClick={() => updateParams({ page: String(page + 1) })}>
                   Вперёд
                 </button>
               </nav>

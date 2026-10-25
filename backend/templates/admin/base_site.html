@@ -8,10 +8,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700&family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="{% static 'admin-theme/churn.css' %}">
+<link rel="icon" type="image/svg+xml" href="{% static 'admin-theme/sign.svg' %}">
 {% endblock %}
 
 {% block branding %}
-<div id="site-name"><a href="{% url 'admin:index' %}">{{ site_header }}</a></div>
+<div id="site-name"><a href="{% url 'admin:index' %}"><img src="{% static 'admin-theme/logo-white.svg' %}" alt="aéza" class="brand-logo"><span>{{ site_header }}</span></a></div>
 {% if user.is_anonymous %}
   {% include "admin/color_theme_toggle.html" %}
 {% endif %}

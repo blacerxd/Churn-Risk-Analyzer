@@ -1,5 +1,6 @@
 from django.urls import path
 
+from api.views.administration import AdminUserDetailView, AdminUserListView, RecalculationListView, StatusEventListView
 from api.views.analytics import ChurnChartView, SummaryView
 from api.views.auth import AuthConfigView, CsrfView, LoginView, LogoutView, MeView
 from api.views.customers import CustomerDetailView, CustomerListView
@@ -21,5 +22,9 @@ urlpatterns = [
     path('analytics/churn-chart', ChurnChartView.as_view(), name='analytics-churn-chart'),
     path('model/settings', ModelSettingsView.as_view(), name='model-settings'),
     path('events', events, name='events'),
+    path('admin/users', AdminUserListView.as_view(), name='admin-users'),
+    path('admin/users/<int:pk>', AdminUserDetailView.as_view(), name='admin-user'),
+    path('admin/recalculations', RecalculationListView.as_view(), name='admin-recalculations'),
+    path('admin/status-events', StatusEventListView.as_view(), name='admin-status-events'),
     path('source/snapshot', SnapshotView.as_view(), name='source-snapshot'),
 ]

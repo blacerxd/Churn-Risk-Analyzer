@@ -221,16 +221,39 @@
 | Метод | Путь | Поведение |
 |---|---|---|
 | POST | `/api/v1/auth/login` | `{username, password}` → 200 + cookie сессии, 400/401 при ошибке |
-| GET | `/api/v1/auth/me` | 200 `{id, username}` или 401/403 |
+| GET | `/api/v1/auth/me` | 200 `{id, username, is_staff, is_superuser}` или 401/403 |
 | GET | `/api/v1/auth/config` | без сессии, `{"oidc_enabled": false}`: показывать ли кнопку SSO (`OIDC_ENABLED` в `.env`) |
 | GET | `/api/v1/auth/oidc/login?next=/customers` | редирект на страницу входа провайдера (404, если SSO выключен) |
 | GET | `/api/v1/auth/oidc/callback` | сюда провайдер возвращает пользователя: сессия и редирект на `next`, при ошибке на `/login?error=sso` |
 
-Через SSO пользователь создаётся при первом входе, логин — его email (провайдер должен
-подтвердить email). Локальные учётные записи с правами staff через SSO не открываются.
+Через SSO входят только пользователи, заведённые в «Админке»: панель находит их по email
+(провайдер должен его подтвердить) и пускает, если они уже входили по паролю и не заблокированы.
+Новых пользователей SSO не создаёт.
 | POST | `/api/v1/auth/logout` | 204, сессия сброшена |
 | GET | `/api/v1/auth/csrf` | выставляет cookie `csrftoken` (нужен SPA до первого POST) |
 
 ## SSE: `GET /api/v1/events`
 
 Событие `recalculated`, данные: `{"reason": "settings|snapshot", "at": "...", "summary": {...}}`. Каждые 15 секунд `: ping`, чтобы соединение не рвалось прокси.
+
+## Администрирование (только `is_staff`)
+
+Раздел «Админка» в панели. Без сессии 401, для пользователя без `is_staff` 403. Списки постраничные,
+как `/customers`: `{count, page, page_size, results}`.
+
+| Метод | Путь | Что делает |
+|---|---|---|
+| GET | `/api/v1/admin/users?search=` | пользователи: `id, username, first_name, last_name, email, is_active, is_staff, is_superuser, date_joined, last_login` |
+| POST | `/api/v1/admin/users` | создать: `{username, first_name, last_name, email, password}`; email обязателен и уникален, пароль проверяется валидаторами Django. При включённом SSO пользователь сразу создаётся и в Keycloak |
+| GET, PATCH | `/api/v1/admin/users/{id}` | изменить `is_active`, `is_staff`, `email`, задать новый `password`. Удаления нет, только блокировка |
+| GET | `/api/v1/admin/recalculations` | история пересчётов: `reason`, `calculated_at`, `duration_seconds`, `by_level`, `score_avg`, деньги |
+| GET | `/api/v1/admin/status-events?new_status=&customer_id=&service_id=` | журнал смен статусов услуг |
+
+Правила для пользователей:
+
+- у своей учётной записи нельзя изменить `is_active` и `is_staff`, чтобы не потерять доступ;
+- `is_staff` выдаёт и снимает только суперпользователь;
+- суперпользователя может изменить только суперпользователь;
+- изменения уходят в Keycloak; если он недоступен — 400 с `non_field_errors: ["SSO: ..."]`, в панели ничего не меняется.
+
+Ошибки — 400 `invalid`, сообщения по полям в `errors`, например `{"password": ["Введённый пароль слишком короткий..."]}`.

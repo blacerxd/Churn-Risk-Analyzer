@@ -6,23 +6,21 @@ from mozilla_django_oidc.views import OIDCAuthenticationCallbackView, OIDCAuthen
 
 
 class OIDCBackend(OIDCAuthenticationBackend):
-    """Provider users are stored with their email as username.
+    """SSO signs in only users created in the admin section, matched by email.
 
-    Local staff accounts are never taken over through SSO, even with a matching email.
+    The first sign-in is always with the panel password: until the user has logged in once
+    (last_login is empty), SSO is refused. Blocked users are refused by the callback view.
     """
 
     def verify_claims(self, claims):
         return bool(claims.get('email')) and claims.get('email_verified') is True
 
     def filter_users_by_claims(self, claims):
-        return self.UserModel.objects.filter(username__iexact=claims['email'])
-
-    def create_user(self, claims):
-        return self.UserModel.objects.create_user(claims['email'], email=claims['email'])
+        return self.UserModel.objects.filter(email__iexact=claims['email'])
 
     def update_user(self, user, claims):
-        if user.is_staff or user.is_superuser:
-            raise SuspiciousOperation('SSO login into a staff account')
+        if user.last_login is None:
+            raise SuspiciousOperation('first sign-in must be with the panel password')
         return user
 
 

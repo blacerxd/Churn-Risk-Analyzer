@@ -117,7 +117,7 @@ def test_summary_matches_contract(loaded):
         'expected_loss_cents': RiskAssessment.objects.get(pk=1).expected_loss,
         'explanation': summary['explanation'],
     }
-    assert 'горизонт потерь (1 мес.)' in summary['explanation']
+    assert 'платит за услуги за месяц' in summary['explanation']
 
 
 def test_settings_update_recalculates(loaded):
@@ -136,7 +136,7 @@ def test_loss_horizon_from_settings_is_applied(loaded):
     latest = AnalyticsSnapshot.objects.latest()
     assert RiskAssessment.objects.get(pk=1).expected_loss == pytest.approx(3 * one_month, abs=1)
     assert latest.revenue_at_risk == 3 * 3000
-    assert 'горизонт потерь (3 мес.)' in latest.explanation
+    assert 'платит за услуги за 3 мес.' in latest.explanation
 
 
 def test_failed_recalculation_rolls_back_settings(loaded, monkeypatch):

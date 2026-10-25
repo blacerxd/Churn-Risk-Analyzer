@@ -126,6 +126,50 @@ export interface AuthConfig {
 export interface Me {
   id: number
   username: string
+  is_staff: boolean
+  is_superuser: boolean
+}
+
+export interface Page<T> {
+  count: number
+  page: number
+  page_size: number
+  results: T[]
+}
+
+export interface AdminUser {
+  id: number
+  username: string
+  first_name: string
+  last_name: string
+  email: string
+  is_active: boolean
+  is_staff: boolean
+  is_superuser: boolean
+  date_joined: string
+  last_login: string | null
+}
+
+export interface Recalculation {
+  id: number
+  reason: 'snapshot' | 'settings'
+  calculated_at: string
+  duration_seconds: number
+  customers_total: number
+  by_level: Record<RiskLevel, number>
+  score_avg: number | null
+  services_at_risk: number
+  revenue_at_risk_cents: number
+  expected_loss_cents: number
+}
+
+export interface StatusEvent {
+  id: number
+  service_id: number
+  customer_id: number
+  old_status: ServiceStatus
+  new_status: ServiceStatus
+  detected_at: string
 }
 
 export const queryKeys = {
@@ -136,6 +180,9 @@ export const queryKeys = {
   settings: ['settings'] as const,
   churnChart: ['churn-chart'] as const,
   authConfig: ['auth-config'] as const,
+  adminUsers: ['admin-users'] as const,
+  recalculations: ['recalculations'] as const,
+  statusEvents: ['status-events'] as const,
 }
 
 const API_ROOT = '/api/v1'

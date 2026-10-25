@@ -2,10 +2,17 @@ import { useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import mascot from '../assets/brand/mascot/business.webp'
+import ThemeToggle from '../components/ThemeToggle'
 import { AezaLogo, AezaPattern } from '../components/ui'
 import { btnPrimary, btnSecondary, cardClass, headingClass, inputClass, labelClass, mutedClass } from '../components/styles'
 import { ApiError, apiFetch, queryKeys } from '../lib/api'
 import type { AuthConfig } from '../lib/api'
+
+const SSO_ERROR =
+  'Не удалось войти через SSO. Первый вход — по логину и паролю от администратора; если вы уже входили, проверьте, что учётная запись не заблокирована.'
+
+const PATTERN_FADE = 'radial-gradient(ellipse 100% 100% at top left, #000 65%, transparent 100%)'
 
 interface LocationState {
   from?: { pathname: string; search?: string }
@@ -23,7 +30,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(
-    searchParams.get('error') === 'sso' ? 'Не удалось войти через SSO' : null,
+    searchParams.get('error') === 'sso' ? SSO_ERROR : null,
   )
   const [loading, setLoading] = useState(false)
 
@@ -79,12 +86,27 @@ export default function Login() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#F4F4F4] px-4 py-10 font-['Inter'] text-black dark:bg-black dark:text-white">
-      <AezaPattern className="pointer-events-none absolute -left-10 top-10 hidden w-72 opacity-60 lg:block" />
-      <AezaPattern className="pointer-events-none absolute -right-10 bottom-10 hidden w-72 rotate-180 opacity-60 lg:block" />
+      {/* Pattern starts at the corner; its cut ends on the right and bottom fade out */}
+      <div
+        className="pointer-events-none absolute left-0 top-0 hidden w-[520px] lg:block"
+        style={{ maskImage: PATTERN_FADE, WebkitMaskImage: PATTERN_FADE }}
+      >
+        <AezaPattern className="w-full" />
+      </div>
+      <img
+        src={mascot}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-0 right-6 hidden h-[78vh] max-h-[640px] w-auto select-none xl:block"
+      />
+
+      <div className="absolute right-4 top-4 z-10">
+        <ThemeToggle />
+      </div>
 
       <main className="relative w-full max-w-md">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <AezaLogo className="h-12 w-12" />
+          <AezaLogo className="h-12" />
           <h1 className={`${headingClass} text-3xl`}>Вход в панель аналитики</h1>
           <p className={mutedClass}>Мониторинг выручки и рисков оттока клиентов</p>
         </div>

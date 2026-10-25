@@ -4,48 +4,31 @@ import { useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../lib/api'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
 import type { Me } from '../lib/api'
-import { btnSecondary } from './styles'
-import { AezaLogo } from './ui'
+import ThemeToggle from './ThemeToggle'
+import { Logo } from './brand'
+import { Icon, IconTile } from './icons'
+import type { IconName } from './icons'
+import { btnGhost, btnGhostIcon } from './styles'
 
-const NAV_ITEMS = [
-  { to: '/', label: 'Обзор', end: true },
-  { to: '/customers', label: 'Клиенты', end: false },
-  { to: '/settings', label: 'Модель', end: false },
-  { to: '/data', label: 'Данные', end: false },
+const NAV_ITEMS: Array<{ to: string; label: string; icon: IconName; end: boolean }> = [
+  { to: '/', label: 'Обзор', icon: 'chart', end: true },
+  { to: '/customers', label: 'Клиенты', icon: 'people', end: false },
+  { to: '/settings', label: 'Модель', icon: 'edit', end: false },
+  { to: '/data', label: 'Данные', icon: 'stack', end: false },
 ]
 
-const THEME_KEY = 'theme'
-
-function readDark(): boolean {
-  try {
-    return localStorage.getItem(THEME_KEY) === 'dark'
-  } catch {
-    return false
-  }
-}
+const navItemClass = (active: boolean, height = 'min-h-12') =>
+  `flex ${height} items-center gap-3 whitespace-nowrap rounded-2xl py-0 pl-2 pr-3 font-display text-[15px] font-bold transition-colors duration-200 ${
+    active ? 'bg-accent text-on-accent' : 'text-ink hover:bg-hover'
+  }`
 
 export default function Layout() {
   const me = useOutletContext<Me>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [dark, setDark] = useState(() => {
-    const initial = readDark()
-    document.documentElement.classList.toggle('dark', initial)
-    return initial
-  })
   const [loggingOut, setLoggingOut] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const live = useLiveUpdates()
-
-  function toggleTheme() {
-    const next = !dark
-    setDark(next)
-    document.documentElement.classList.toggle('dark', next)
-    try {
-      localStorage.setItem(THEME_KEY, next ? 'dark' : 'light')
-    } catch {
-      // тема просто не сохранится
-    }
-  }
 
   async function handleLogout() {
     setLoggingOut(true)
@@ -57,74 +40,110 @@ export default function Layout() {
     }
   }
 
+  const time = live.updatedAt?.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+
+  const status = (
+    <span
+      role="status"
+      className={`inline-flex min-h-9 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 font-sans text-sm text-ink ${
+        live.connected ? 'border-line' : 'border-2 border-warn'
+      }`}
+    >
+      <Icon name={live.connected ? 'check' : 'alert'} className="h-4 w-4" />
+      {live.connected && time ? (
+        <span>
+          <span className="hidden sm:inline">Обновлено в </span>
+          {time}
+        </span>
+      ) : (
+        'Нет связи'
+      )}
+    </span>
+  )
+
+  const themeSwitch = <ThemeToggle />
+
+  const logoutButton = (
+    <button type="button" onClick={() => void handleLogout()} disabled={loggingOut} className={btnGhost}>
+      <Icon name="logout" />
+      Выйти
+    </button>
+  )
+
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="flex shrink-0 flex-col gap-4 border-b border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900 md:sticky md:top-0 md:h-screen md:w-56 md:border-b-0 md:border-r md:p-6">
-        <div className="flex items-center gap-2">
-          <AezaLogo className="h-8 w-8" />
-          <span className="font-['Exo_2'] text-xl font-bold tracking-tight text-[#182D48] dark:text-white">aéza</span>
+      <aside className="hidden shrink-0 flex-col gap-7 border-r border-line bg-surface p-4 md:sticky md:top-0 md:flex md:h-screen md:w-21 md:items-center lg:w-62 lg:items-stretch lg:p-4">
+        <div className="mt-1.5 hidden lg:block lg:px-1.5">
+          <Logo />
         </div>
-        <nav aria-label="Основное меню" className="flex gap-1 overflow-x-auto md:flex-col">
+        <div className="mt-1.5 lg:hidden">
+          <Logo compact />
+        </div>
+        <nav aria-label="Основное меню" className="flex flex-col gap-1">
           {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `whitespace-nowrap rounded-lg px-3.5 py-2 font-['Exo_2'] text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] ${
-                  isActive
-                    ? 'bg-[#182D48] text-white dark:bg-[#4CC6F1]/15 dark:text-[#4CC6F1]'
-                    : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
-                }`
-              }
-            >
-              {item.label}
+            <NavLink key={item.to} to={item.to} end={item.end} title={item.label} className={({ isActive }) => navItemClass(isActive)}>
+              <IconTile name={item.icon} size="sm" />
+              <span className="hidden lg:inline">{item.label}</span>
             </NavLink>
           ))}
-          <a
-            href="/admin/"
-            target="_blank"
-            rel="noreferrer"
-            className="whitespace-nowrap rounded-lg px-3.5 py-2 font-['Exo_2'] text-sm font-semibold text-neutral-600 transition-all hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] dark:text-neutral-300 dark:hover:bg-neutral-800"
-          >
-            Админка
-          </a>
+          {me.is_staff && (
+            <NavLink to="/administration" title="Админка" className={({ isActive }) => navItemClass(isActive)}>
+              <IconTile name="shield" size="sm" />
+              <span className="hidden lg:inline">Админка</span>
+            </NavLink>
+          )}
         </nav>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900 sm:gap-3 md:px-8">
-          <span
-            role="status"
-            className={`mr-auto flex min-w-0 items-center gap-2 whitespace-nowrap font-['Inter'] text-sm ${live.connected ? 'text-neutral-600 dark:text-neutral-300' : 'text-red-500'}`}
-          >
-            <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${live.connected ? 'bg-emerald-500' : 'bg-red-500'}`} />
-            {live.connected && live.updatedAt ? (
-              <span>
-                <span className="hidden sm:inline">Обновлено в </span>
-                {live.updatedAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            ) : (
-              'Нет связи'
-            )}
-          </span>
-          <span className="hidden truncate font-['Inter'] text-sm text-neutral-600 dark:text-neutral-300 sm:inline">{me.username}</span>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-pressed={dark}
-            aria-label={dark ? 'Включить светлую тему' : 'Включить тёмную тему'}
-            className="whitespace-nowrap rounded-lg border border-neutral-300 px-3 py-2 font-['Inter'] text-sm text-neutral-700 transition-all hover:border-[#4CC6F1] focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] dark:border-neutral-800 dark:text-neutral-300"
-          >
-            <span aria-hidden="true">{dark ? '☀' : '☾'}</span>
-            <span className="ml-2 hidden sm:inline">{dark ? 'Светлая тема' : 'Тёмная тема'}</span>
-          </button>
-          <button type="button" onClick={() => void handleLogout()} disabled={loggingOut} className={btnSecondary}>
-            Выйти
-          </button>
+        <header className="hidden items-center gap-3 border-b border-line bg-surface px-8 py-4 md:flex lg:px-10">
+          <span className="mr-auto">{status}</span>
+          <span className="hidden truncate font-sans text-sm text-muted lg:inline">{me.username}</span>
+          {themeSwitch}
+          {logoutButton}
         </header>
-        <main className="flex-1 p-4 md:p-8">
-          <Outlet />
+
+        <div className="border-b border-line bg-surface md:hidden">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <Logo compact />
+            <span className="mr-auto">{status}</span>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+              aria-label={menuOpen ? 'Закрыть меню' : 'Открыть меню'}
+              className={btnGhostIcon}
+            >
+              <Icon name={menuOpen ? 'close' : 'menu'} />
+            </button>
+          </div>
+          {menuOpen && (
+            <div id="mobile-menu" className="flex flex-col gap-2 px-4 pb-5 pt-1">
+              <nav aria-label="Основное меню" className="flex flex-col gap-1">
+                {NAV_ITEMS.map((item) => (
+                  <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setMenuOpen(false)} className={({ isActive }) => navItemClass(isActive, 'min-h-13')}>
+                    <IconTile name={item.icon} size="sm" />
+                    {item.label}
+                  </NavLink>
+                ))}
+                {me.is_staff && (
+                  <NavLink to="/administration" onClick={() => setMenuOpen(false)} className={({ isActive }) => navItemClass(isActive, 'min-h-13')}>
+                    <IconTile name="shield" size="sm" />
+                    Админка
+                  </NavLink>
+                )}
+              </nav>
+              <div className="flex items-center justify-between gap-3 pt-2">
+                {themeSwitch}
+                {logoutButton}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <main className="w-full max-w-7xl flex-1 p-4 pb-8 md:p-8 lg:p-10">
+          <Outlet context={me} />
         </main>
       </div>
     </div>

@@ -27,11 +27,18 @@ docker compose up -d --build
 | http://localhost:8080/api/v1/docs | Swagger UI |
 | http://localhost:8080/api/v1/schema | OpenAPI-схема (она же лежит в `backend/openapi.yml`) |
 | http://localhost:8080/metrics | Метрики Prometheus, нужен токен |
-| http://localhost:8080/admin | Админка Django |
+| http://localhost:8080/administration | Админка в панели: пользователи, история пересчётов, журнал статусов (для `is_staff`) |
+| http://localhost:8080/admin | Django admin для разработчиков |
 
 ```bash
 curl -H "Authorization: Bearer <METRICS_TOKEN из .env>" http://localhost:8080/metrics
 ```
+
+`/metrics` закрыт токеном: без него ответ 401, сессии панели недостаточно. В Compose запущен
+Prometheus (`monitoring/prometheus.yml`), который собирает метрики каждые 15 секунд с тем же
+токеном из `.env`. Его интерфейс на http://localhost:9090 (наружу не публикуется), например
+запрос `churn_customers` или `churn_expected_loss_cents`. Значения совпадают со сводкой на главной:
+они берутся из того же пересчёта.
 
 Настройки модели и данные хранятся в PostgreSQL на томе `pgdata` и переживают
 `docker compose down && docker compose up`. Чтобы начать с чистой базы: `docker compose down -v`.
@@ -112,9 +119,9 @@ docker compose exec backend python manage.py load_sample              # толь
 ## Вход через SSO: OIDC и FIDO2
 
 Кроме логина и пароля можно входить через OIDC-провайдера. Для демонстрации в Compose есть
-Keycloak с готовым realm `churn` (`keycloak/churn-realm.json`) и пользователем `analyst`.
-В Keycloak вход без пароля: по FIDO2-ключу или passkey (YubiKey, Touch ID, Windows Hello,
-телефон). Панель получает от Keycloak обычный OIDC-ответ и про способ входа ничего не знает.
+Keycloak с готовым realm `churn` (`keycloak/import/churn-realm.json`). В Keycloak вход без
+пароля: по FIDO2-ключу или passkey (YubiKey, Touch ID, Windows Hello, телефон). Панель получает
+от Keycloak обычный OIDC-ответ и про способ входа ничего не знает.
 
 В `.env`:
 
@@ -123,28 +130,39 @@ COMPOSE_PROFILES=oidc
 OIDC_ENABLED=true
 OIDC_PUBLIC_URL=http://localhost:8080      # адрес, по которому открывают панель
 OIDC_CLIENT_SECRET=<случайная строка>
-OIDC_DEMO_PASSWORD=<пароль для первого входа analyst>
+KEYCLOAK_PROVISIONER_SECRET=<случайная строка>
 KEYCLOAK_ADMIN_PASSWORD=<случайная строка>
 ```
 
-После `docker compose up -d` на странице входа появится кнопка «Войти через SSO».
+Кто и как входит:
 
-1. Первый вход: логин `analyst`, пароль `OIDC_DEMO_PASSWORD`, затем Keycloak сразу просит
-   зарегистрировать ключ.
-2. Дальше: логин и подтверждение ключом. Как только у пользователя есть ключ, пароль
-   на этом шаге не принимается.
+1. Администратор заводит пользователя в разделе «Админка» панели: логин, имя, фамилия, email
+   (обязателен и уникален), пароль. Панель сразу создаёт такого же пользователя в Keycloak через
+   служебный клиент `churn-provisioner`. Если Keycloak недоступен, пользователь не создаётся нигде.
+2. Первый вход — всегда по логину и паролю на странице входа панели.
+3. Дальше можно нажать «Войти через SSO». Панель находит пользователя по email и пускает,
+   только если он заведён в панели, уже входил по паролю и не заблокирован. Сама она через SSO
+   никого не создаёт. В первый раз Keycloak попросит тот же пароль и предложит зарегистрировать
+   ключ, потом вход только по ключу.
+4. Блокировка, смена пароля и данных в «Админке» тоже уходят в Keycloak.
 
+Пользователи, созданные через Django admin, в Keycloak не копируются: заводите их в «Админке».
 WebAuthn работает только по HTTPS или на `localhost`, ключ привязан к домену панели.
 
 Keycloak доступен через тот же nginx по пути `/kc`, наружу открыты только страницы входа.
 Он работает в dev-режиме со встроенной базой на томе `keycloak-data`, поэтому
 зарегистрированные ключи переживают перезапуск. Realm импортируется только в пустой том:
-после правки `keycloak/churn-realm.json` выполните
+после правки `keycloak/import/churn-realm.json` выполните
 `docker compose down keycloak && docker volume rm churn-risk-analyzer_keycloak-data`
 (ключи придётся зарегистрировать заново).
 
-Пользователь панели создаётся при первом входе, логин — его email. Локальные учётные
-записи с правами staff через SSO не открываются. Для другого провайдера укажите
+Страницы входа Keycloak оформлены в стиле панели темой `keycloak/themes/aeza`: логотип,
+паттерн, цвета и шрифты из гайдбука Aéza, светлая и тёмная тема берутся из переключателя
+панели. Тема построена поверх стандартной `keycloak.v2` и меняет только оформление и тексты
+(`messages/messages_ru.properties`, там же исправлен перевод «passkey»). В dev-режиме Keycloak
+не кэширует темы, правки видны после обновления страницы.
+
+Для другого провайдера укажите
 `OIDC_ISSUER_URL` и `OIDC_ISSUER_INTERNAL_URL` (оба — адрес issuer), `OIDC_CLIENT_ID` и
 `OIDC_CLIENT_SECRET`, в провайдере разрешите redirect URI
 `<адрес панели>/api/v1/auth/oidc/callback`. Пути эндпоинтов по умолчанию как у Keycloak,
@@ -167,7 +185,7 @@ Keycloak доступен через тот же nginx по пути `/kc`, на
 | `SAMPLE_AUTOLOAD` | Чем заполнить пустую базу: `extended`, `case`, `none` |
 | `SNAPSHOT_MAX_BYTES` | Максимальный размер снимка, по умолчанию 20 МБ |
 | `OIDC_ENABLED` | Включить вход через SSO, см. раздел выше |
-| `COMPOSE_PROFILES`, `OIDC_PUBLIC_URL`, `OIDC_CLIENT_SECRET`, `OIDC_DEMO_PASSWORD`, `KEYCLOAK_ADMIN_PASSWORD` | Встроенный Keycloak |
+| `COMPOSE_PROFILES`, `OIDC_PUBLIC_URL`, `OIDC_CLIENT_SECRET`, `KEYCLOAK_PROVISIONER_SECRET`, `KEYCLOAK_ADMIN_PASSWORD` | Встроенный Keycloak |
 
 ## Разработка
 

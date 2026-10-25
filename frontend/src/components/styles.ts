@@ -1,52 +1,88 @@
+import type { CSSProperties } from 'react'
 import type { RiskLevel } from '../lib/api'
+import type { IconName } from './icons'
 
+// Классы собраны из токенов @theme (см. index.css): bg-surface, text-muted, border-line, bg-accent и т.д.
+// Цвета в строках классов не повторяются. Тему переключает класс .dark на <html>.
+//
 // В Tailwind побеждает порядок правил в CSS, а не порядок классов в строке: дописанный
 // к готовому классу `p-0` не перебьёт `p-6`. Поэтому свойства, которые где-то меняются
 // (отступы карточки, ширина поля, цвет заголовка), вынесены из базовых классов.
 
+// Высота и отступы тоже меняются по месту (select в пагинации, поиск со значком, пароль с кнопкой),
+// поэтому приходят параметрами, а не дописываются к готовой строке.
 const inputBase =
-  "rounded-lg border bg-white px-3.5 font-['Inter'] text-sm placeholder:text-neutral-400 focus:border-transparent focus:outline-none focus:ring-2 disabled:opacity-50 dark:bg-neutral-900"
-const inputNormal = 'border-neutral-300 text-black focus:ring-[#4CC6F1] dark:border-neutral-800 dark:text-white'
-const inputInvalid = 'border-red-500 text-red-500 focus:ring-red-500 dark:border-red-500 dark:text-red-400'
+  'rounded-field bg-surface font-sans text-base text-ink transition-colors placeholder:text-muted hover:border-accent disabled:opacity-50'
+const inputNormal = 'border border-line'
+const inputInvalid = 'border-2 border-warn'
 
-export function inputClass({ invalid = false, size = 'w-full py-2' }: { invalid?: boolean; size?: string } = {}): string {
-  return `${inputBase} ${size} ${invalid ? inputInvalid : inputNormal}`
+export function inputClass({
+  invalid = false,
+  size = 'w-full min-h-11',
+  pad,
+}: { invalid?: boolean; size?: string; pad?: string } = {}): string {
+  // Рамка ошибки на пиксель толще — отступ на пиксель меньше, чтобы текст не прыгал.
+  return `${inputBase} ${size} ${pad ?? (invalid ? 'px-[15px]' : 'px-4')} ${invalid ? inputInvalid : inputNormal}`
 }
 
-export const btnPrimary =
-  "inline-flex items-center justify-center gap-2 bg-[#4CC6F1] text-black font-['Exo_2'] font-semibold rounded-lg px-4 py-2 hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none transition-all focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] focus:ring-offset-2 dark:focus:ring-offset-black"
+const btnShape =
+  'inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full border font-display text-[15px] font-bold leading-5 transition duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45'
 
-export const btnSecondary =
-  "inline-flex items-center justify-center gap-2 bg-[#182D48] text-white font-['Exo_2'] font-semibold hover:bg-[#182D48]/90 rounded-lg px-4 py-2 transition-all disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] focus:ring-offset-2 dark:bg-white/10 dark:hover:bg-white/15 dark:focus:ring-offset-black"
+const btnBase = `${btnShape} px-[22px]`
+
+// Голубая заливка и чёрная подпись (≈ 10,7 : 1). На сайте подпись белая, но белое на голубом даёт ≈ 2 : 1.
+export const btnPrimary = `${btnBase} border-transparent bg-accent text-on-accent hover:brightness-105`
+export const btnSecondary = `${btnBase} border-transparent bg-navy text-white hover:bg-[#21406a]`
+export const btnGhost = `${btnBase} border-line bg-transparent text-ink hover:border-accent`
+// Квадратная кнопка со значком (меню на мобильном): без горизонтальных отступов.
+export const btnGhostIcon = `${btnShape} w-11 border-line bg-transparent text-ink hover:border-accent`
 
 // Переключатели-сегменты: фильтр уровней, период графика.
 export const segmentClass =
-  "rounded-lg border px-3.5 py-1.5 font-['Inter'] text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[#4CC6F1]"
-export const segmentActiveClass = 'border-[#182D48] bg-[#182D48] text-white dark:border-[#4CC6F1] dark:bg-[#4CC6F1]/15 dark:text-[#4CC6F1]'
-export const segmentIdleClass =
-  'border-neutral-300 bg-white text-neutral-700 hover:border-[#4CC6F1] dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300'
+  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border px-4 font-sans text-sm font-semibold transition duration-200'
+export const segmentActiveClass = 'border-accent bg-accent text-on-accent'
+export const segmentIdleClass = 'border-line bg-surface text-ink hover:border-accent'
 
 // Карточка без отступов — для таблиц, которые идут от края до края.
-export const cardBase = 'rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900'
-export const cardClass = `${cardBase} p-6`
+export const cardBase = 'rounded-card border border-line bg-surface'
+export const cardClass = `${cardBase} p-6 md:p-8`
 
-// Заголовок без цвета — для состояний со своим цветом (ошибка, «нет оценки»).
-export const headingBase = "font-['Exo_2'] font-semibold tracking-tight"
-export const headingClass = `${headingBase} text-[#182D48] dark:text-white`
+// Выноска (розовый акцент): пояснение формулы.
+export const calloutClass = 'rounded-panel bg-highlight p-5 text-highlight-ink md:px-6'
 
-export const labelClass = "font-['Inter'] text-sm font-medium text-neutral-700 dark:text-neutral-300"
+// Шрифт заголовков без регистра — для email и сумм, где капс искажает текст.
+export const displayBase = 'font-display tracking-tight'
+// Заголовок без цвета и веса — для состояний со своим цветом и для крупных чисел (там font-black).
+export const headingBase = `${displayBase} uppercase`
+export const headingClass = `${headingBase} font-extrabold text-ink`
 
-export const mutedClass = "font-['Inter'] text-sm text-neutral-500"
+export const labelClass = 'font-sans text-sm font-semibold text-ink'
 
-export const linkClass =
-  "rounded font-['Inter'] font-medium text-[#182D48] underline-offset-4 hover:underline focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] dark:text-[#4CC6F1]"
+// Без размера — для подписей крупнее или мельче обычной.
+export const mutedBase = 'font-sans text-muted'
+export const mutedClass = `${mutedBase} text-sm`
 
-export const tableHeadClass =
-  "px-4 py-3 text-left font-['Inter'] text-xs font-medium uppercase tracking-wider text-neutral-500"
+// Без подчёркивания — для ссылок-кнопок со значком.
+export const linkBase = 'rounded font-sans font-semibold text-link transition-colors'
+export const linkClass = `${linkBase} underline underline-offset-4 hover:no-underline`
 
+export const tableHeadClass = 'px-4 py-3 text-left font-sans text-xs font-semibold uppercase tracking-[0.06em] text-muted whitespace-nowrap'
+
+export const tableCellClass = 'px-4 py-3 align-middle text-sm'
+
+// Полоса score и распределения уровней. Уровень различим не только цветом: рядом всегда подпись и значок.
 export const LEVEL_BAR_CLASS: Record<RiskLevel, string> = {
-  high: 'bg-red-500',
-  medium: 'bg-[#E97C35]',
-  low: 'bg-emerald-500',
-  none: 'bg-neutral-400',
+  high: 'bg-warn',
+  medium: 'bg-warn/55',
+  low: 'bg-accent',
+  none: 'bg-muted/50',
 }
+
+/** Заливка дорожки ползунка (переменная читается в index.css). */
+export function rangeStyle(value: number, min: number, max: number): CSSProperties {
+  const span = max - min
+  const percent = span > 0 && !Number.isNaN(value) ? Math.min(100, Math.max(0, ((value - min) / span) * 100)) : 0
+  return { '--range-fill': `${percent}%` } as CSSProperties
+}
+
+export const LEVEL_ICON: Record<RiskLevel, IconName> = { high: 'flag', medium: 'half', low: 'shield', none: 'dash' }

@@ -3,6 +3,7 @@ from fractions import Fraction
 import pytest
 
 from analytics.context import ModelParams
+from analytics.formatting import money
 from analytics.money import (
     CustomerMoney,
     PortfolioMoney,
@@ -113,6 +114,15 @@ def test_portfolio_totals():
 def test_explanation_mentions_formula_balances_and_horizon():
     text = explanation(ModelParams(loss_horizon_months=3))
 
-    assert 'вероятность ухода клиента (score / 100)' in text
-    assert 'Балансы входят в вероятность' in text
-    assert '(3 мес.)' in text
+    assert 'шанс, что он уйдёт, × сколько он платит за услуги за 3 мес.' in text
+    assert 'денег на балансе не хватает' in text
+    assert f'ожидаемая потеря {money(2100)}' in text
+    assert 'score' not in text and 'prolong_wait' not in text
+
+
+def test_explanation_one_month_reads_naturally():
+    text = explanation(ModelParams(loss_horizon_months=1))
+
+    assert 'за месяц' in text
+    assert f'ожидаемая потеря {money(700)}' in text
+    assert len(text.split('\n')) == 6

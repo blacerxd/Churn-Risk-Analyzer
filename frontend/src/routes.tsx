@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import Administration from './pages/Administration'
 import CustomerDetail from './pages/CustomerDetail'
 import Customers from './pages/Customers'
 import Dashboard from './pages/Dashboard'
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
           { path: '/customers/:id', element: <CustomerDetail /> },
           { path: '/settings', element: <ModelSettings /> },
           { path: '/data', element: <DataSnapshot /> },
+          { path: '/administration', element: <Administration /> },
           { path: '*', element: <NotFound /> },
         ],
       },

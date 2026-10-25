@@ -140,17 +140,22 @@ h1, h2, #site-name, .module caption, .stat-card .value {
 #site-name a {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     font-weight: 700;
     font-size: 1.15rem;
 }
 
-#site-name a::before {
-    content: "";
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    background: #4CC6F1;
+/* white keys on the dark header: an approved monochrome version of the logo */
+#site-name .brand-logo {
+    height: 28px;
+    width: auto;
+}
+
+#site-name span {
+    padding-left: 12px;
+    border-left: 1px solid rgba(255, 255, 255, 0.25);
+    color: #fff;
+    font-weight: 600;
 }
 
 #user-tools a {
@@ -430,6 +435,8 @@ ul.messagelist li {
 .stats-note p {
     max-width: 760px;
     margin-top: 8px;
+    white-space: pre-line;
+    line-height: 1.6;
 }
 
 /* long reason text in the customer list */

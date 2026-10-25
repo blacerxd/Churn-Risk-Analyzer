@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ErrorState, PageHeader, Skeleton } from '../components/ui'
-import { btnPrimary, btnSecondary, cardClass, headingClass, inputClass, labelClass, mutedClass } from '../components/styles'
+import { btnPrimary, btnSecondary, cardClass, headingClass, labelClass, mutedClass } from '../components/styles'
 import { ApiError, apiFetch, queryKeys } from '../lib/api'
 import type { ModelSettingsData, ModelSettingsPatch, ParamField } from '../lib/api'
 
@@ -105,22 +105,58 @@ interface NumberFieldProps {
   disabled: boolean
 }
 
+const stepButtonClass =
+  "flex w-8 items-center justify-center text-base font-semibold text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-[#182D48] focus:outline-none focus-visible:bg-[#4CC6F1]/15 disabled:pointer-events-none disabled:opacity-40 dark:hover:bg-neutral-800 dark:hover:text-white"
+
+// Browser spinners are hidden (index.css); the − / + buttons step within min and max
 function NumberInput({ id, value, min, max, step = 1, error, onChange, disabled }: NumberFieldProps) {
+  const current = Number.isNaN(value) ? min : value
+  // toFixed drops float noise like 0.30000000000000004 without rounding typed decimals
+  const clamp = (next: number) => Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min, Number(next.toFixed(6))))
+
   return (
-    <input
-      id={id}
-      type="number"
-      inputMode="decimal"
-      min={min}
-      max={max}
-      step={step}
-      value={Number.isNaN(value) ? '' : value}
-      disabled={disabled}
-      aria-invalid={Boolean(error)}
-      aria-describedby={error ? `${id}-error` : undefined}
-      onChange={(event) => onChange(event.target.value === '' ? Number.NaN : Number(event.target.value))}
-      className={`${inputClass({ invalid: Boolean(error), size: 'w-24 shrink-0 py-2' })} text-right tabular-nums`}
-    />
+    <div
+      className={`flex h-10 w-32 shrink-0 overflow-hidden rounded-lg border bg-white focus-within:ring-2 dark:bg-neutral-900 ${
+        error ? 'border-red-500 focus-within:ring-red-500' : 'border-neutral-300 focus-within:border-transparent focus-within:ring-[#4CC6F1] dark:border-neutral-800'
+      } ${disabled ? 'opacity-50' : ''}`}
+    >
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label="Уменьшить"
+        disabled={disabled || current <= min}
+        onClick={() => onChange(clamp(current - step))}
+        className={`${stepButtonClass} border-r border-neutral-200 dark:border-neutral-800`}
+      >
+        −
+      </button>
+      <input
+        id={id}
+        type="number"
+        inputMode="decimal"
+        min={min}
+        max={max}
+        step={step}
+        value={Number.isNaN(value) ? '' : value}
+        disabled={disabled}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
+        onChange={(event) => onChange(event.target.value === '' ? Number.NaN : Number(event.target.value))}
+        className={`w-full min-w-0 bg-transparent px-1 text-center font-['Inter'] text-sm tabular-nums focus:outline-none ${
+          error ? 'text-red-500 dark:text-red-400' : 'text-black dark:text-white'
+        }`}
+      />
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label="Увеличить"
+        disabled={disabled || (max !== undefined && current >= max)}
+        onClick={() => onChange(clamp(current + step))}
+        className={`${stepButtonClass} border-l border-neutral-200 dark:border-neutral-800`}
+      >
+        +
+      </button>
+    </div>
   )
 }
 

@@ -1,0 +1,13 @@
+# Scrapes the panel's /metrics with the same token as any other client (METRICS_TOKEN from .env).
+# The token is written to /tmp/metrics-token by the container command in docker-compose.yml.
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: churn-risk-analyzer
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials_file: /tmp/metrics-token
+    static_configs:
+      - targets: ['backend:8000']
