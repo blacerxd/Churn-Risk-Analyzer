@@ -72,8 +72,9 @@
             {"path": "services[0].status", "message": "недопустимое значение 'x', ожидается одно из: ..."}]}
 ```
 
-При старте контейнера, если база пуста, загружается `test_data/data.json`
-(переменная `SNAPSHOT_AUTOLOAD`, пустое значение отключает).
+При старте контейнера, если база пуста, загружается набор из `sample-data/` с датами, сдвинутыми
+на текущий момент (`SAMPLE_AUTOLOAD`: `extended` по умолчанию, `case` или `none`).
+Произвольный файл можно загрузить командой `manage.py load_snapshot <файл>`.
 
 ## `GET /api/v1/customers`
 
@@ -222,6 +223,11 @@
 | POST | `/api/v1/auth/login` | `{username, password}` → 200 + cookie сессии, 400/401 при ошибке |
 | GET | `/api/v1/auth/me` | 200 `{id, username}` или 401/403 |
 | GET | `/api/v1/auth/config` | без сессии, `{"oidc_enabled": false}`: показывать ли кнопку SSO (`OIDC_ENABLED` в `.env`) |
+| GET | `/api/v1/auth/oidc/login?next=/customers` | редирект на страницу входа провайдера (404, если SSO выключен) |
+| GET | `/api/v1/auth/oidc/callback` | сюда провайдер возвращает пользователя: сессия и редирект на `next`, при ошибке на `/login?error=sso` |
+
+Через SSO пользователь создаётся при первом входе, логин — его email (провайдер должен
+подтвердить email). Локальные учётные записи с правами staff через SSO не открываются.
 | POST | `/api/v1/auth/logout` | 204, сессия сброшена |
 | GET | `/api/v1/auth/csrf` | выставляет cookie `csrftoken` (нужен SPA до первого POST) |
 

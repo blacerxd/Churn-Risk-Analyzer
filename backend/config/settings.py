@@ -44,6 +44,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Serves collectstatic output (admin) with DEBUG off
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -97,6 +99,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -125,7 +131,33 @@ SPECTACULAR_SETTINGS = {
 
 METRICS_TOKEN = os.environ.get('METRICS_TOKEN', '')
 
-OIDC_ENABLED = os.environ.get('OIDC_ENABLED', 'false').lower() == 'true'
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
+
+# SSO through any OIDC provider; endpoint paths default to Keycloak's layout.
+# The browser is sent to OIDC_ISSUER_URL, the backend calls OIDC_ISSUER_INTERNAL_URL directly.
+OIDC_ENABLED = env_bool('OIDC_ENABLED')
+if OIDC_ENABLED:
+    AUTHENTICATION_BACKENDS.append('api.oidc.OIDCBackend')
+    # Defaults match the bundled Keycloak (docker-compose profile oidc)
+    _public_url = os.environ.get('OIDC_PUBLIC_URL', 'http://localhost:8080').rstrip('/')
+    _issuer = (os.environ.get('OIDC_ISSUER_URL') or f'{_public_url}/kc/realms/churn').rstrip('/')
+    _issuer_internal = (os.environ.get('OIDC_ISSUER_INTERNAL_URL') or _issuer).rstrip('/')
+    OIDC_RP_CLIENT_ID = os.environ.get('OIDC_CLIENT_ID', 'churn-panel')
+    OIDC_RP_CLIENT_SECRET = os.environ['OIDC_CLIENT_SECRET']
+    OIDC_RP_SIGN_ALGO = 'RS256'
+    OIDC_RP_SCOPES = 'openid email profile'
+    OIDC_USE_PKCE = True
+    OIDC_OP_AUTHORIZATION_ENDPOINT = os.environ.get(
+        'OIDC_OP_AUTHORIZATION_ENDPOINT', f'{_issuer}/protocol/openid-connect/auth')
+    OIDC_OP_TOKEN_ENDPOINT = os.environ.get(
+        'OIDC_OP_TOKEN_ENDPOINT', f'{_issuer_internal}/protocol/openid-connect/token')
+    OIDC_OP_USER_ENDPOINT = os.environ.get(
+        'OIDC_OP_USER_ENDPOINT', f'{_issuer_internal}/protocol/openid-connect/userinfo')
+    OIDC_OP_JWKS_ENDPOINT = os.environ.get(
+        'OIDC_OP_JWKS_ENDPOINT', f'{_issuer_internal}/protocol/openid-connect/certs')
+    OIDC_AUTHENTICATION_CALLBACK_URL = 'oidc-callback'
+    LOGIN_REDIRECT_URL = '/'
+    LOGIN_REDIRECT_URL_FAILURE = '/login?error=sso'
 
 # nginx (client_max_body_size in frontend/nginx.conf) cuts anything above 20 MB anyway.
 SNAPSHOT_MAX_BYTES = int(os.environ.get('SNAPSHOT_MAX_BYTES', 20 * 1024 * 1024))

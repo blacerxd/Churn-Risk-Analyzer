@@ -1,0 +1,172 @@
+{
+  "realm": "churn",
+  "displayName": "Churn Risk Analyzer",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "bruteForceProtected": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "ru",
+    "en"
+  ],
+  "defaultLocale": "ru",
+  "clients": [
+    {
+      "clientId": "churn-panel",
+      "name": "Churn Risk Analyzer",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${OIDC_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "${OIDC_PUBLIC_URL}/api/v1/auth/oidc/callback"
+      ],
+      "webOrigins": [
+        "${OIDC_PUBLIC_URL}"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "analyst",
+      "email": "analyst@example.com",
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "Analyst",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${OIDC_DEMO_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [
+        "webauthn-register-passwordless"
+      ]
+    }
+  ],
+  "browserFlow": "browser-fido",
+  "webAuthnPolicyPasswordlessRpEntityName": "Churn Risk Analyzer",
+  "webAuthnPolicyPasswordlessRequireResidentKey": "Yes",
+  "webAuthnPolicyPasswordlessUserVerificationRequirement": "required",
+  "authenticationFlows": [
+    {
+      "alias": "browser-fido",
+      "description": "Вход по FIDO2-ключу или passkey без пароля",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false,
+          "authenticator": "auth-cookie"
+        },
+        {
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "authenticatorFlow": true,
+          "flowAlias": "browser-fido forms"
+        }
+      ]
+    },
+    {
+      "alias": "browser-fido forms",
+      "description": "Логин, затем ключ",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false,
+          "authenticator": "auth-username-form"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "authenticatorFlow": true,
+          "flowAlias": "browser-fido passkey"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 30,
+          "userSetupAllowed": false,
+          "authenticatorFlow": true,
+          "flowAlias": "browser-fido first login"
+        }
+      ]
+    },
+    {
+      "alias": "browser-fido passkey",
+      "description": "Если ключ зарегистрирован, вход только по нему",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false,
+          "authenticator": "conditional-user-configured"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false,
+          "authenticator": "webauthn-authenticator-passwordless"
+        }
+      ]
+    },
+    {
+      "alias": "browser-fido first login",
+      "description": "Пока ключа нет: пароль, затем обязательная регистрация ключа",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false,
+          "authenticator": "conditional-credential",
+          "authenticatorConfig": "passkey not used"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false,
+          "authenticator": "auth-password-form"
+        }
+      ]
+    }
+  ],
+  "authenticatorConfig": [
+    {
+      "alias": "passkey not used",
+      "config": {
+        "credentials": "webauthn-passwordless",
+        "included": "false"
+      }
+    }
+  ]
+}

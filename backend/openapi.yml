@@ -1,0 +1,813 @@
+openapi: 3.0.3
+info:
+  title: Churn Risk Analyzer API
+  version: 1.0.0
+paths:
+  /api/v1/analytics/churn-chart:
+    get:
+      operationId: api_v1_analytics_churn_chart_retrieve
+      description: 'Факт: сколько услуг перешло в deleted за день. История копится
+        из разницы между загруженными снимками, поэтому начинается с первого обнаруженного
+        удаления. Прогноз: по услугам, которые истекают в ближайшие `days` дней, сумма
+        вероятностей ухода их владельцев. Отсчёт идёт от времени последнего пересчёта.'
+      summary: 'График оттока: факт и прогноз'
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+          maximum: 90
+          minimum: 1
+          default: 30
+      tags:
+      - analytics
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChurnChart'
+          description: ''
+  /api/v1/analytics/summary:
+    get:
+      operationId: api_v1_analytics_summary_retrieve
+      summary: Итоги по портфелю клиентов
+      tags:
+      - analytics
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Summary'
+          description: ''
+  /api/v1/auth/config:
+    get:
+      operationId: api_v1_auth_config_retrieve
+      summary: Доступные способы входа
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthConfig'
+          description: ''
+  /api/v1/auth/csrf:
+    get:
+      operationId: api_v1_auth_csrf_retrieve
+      description: Выставляет cookie `csrftoken`. Значение передаётся в заголовке
+        `X-CSRFToken` во всех POST/PUT/PATCH.
+      summary: Получить CSRF-cookie
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/login:
+    post:
+      operationId: api_v1_auth_login_create
+      summary: Вход по логину и паролю
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '400':
+          description: Не указан логин или пароль
+        '401':
+          description: Неверный логин или пароль
+        '429':
+          description: Слишком много попыток
+  /api/v1/auth/logout:
+    post:
+      operationId: api_v1_auth_logout_create
+      summary: Завершение сессии
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+        '401':
+          description: Не выполнен вход
+  /api/v1/auth/me:
+    get:
+      operationId: api_v1_auth_me_retrieve
+      summary: Текущий пользователь
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '401':
+          description: Не выполнен вход
+  /api/v1/customers:
+    get:
+      operationId: customers_list
+      summary: Список клиентов с оценкой риска
+      parameters:
+      - in: query
+        name: level
+        schema:
+          enum:
+          - high
+          - medium
+          - low
+          - none
+          type: string
+          minLength: 1
+        description: |-
+          * `high` - high
+          * `medium` - medium
+          * `low` - low
+          * `none` - none
+      - in: query
+        name: ordering
+        schema:
+          enum:
+          - id
+          - email
+          - balance
+          - total_replenished
+          - score
+          - expected_loss
+          - -id
+          - -email
+          - -balance
+          - -total_replenished
+          - -score
+          - -expected_loss
+          type: string
+          default: -score
+          minLength: 1
+        description: |-
+          * `id` - id
+          * `email` - email
+          * `balance` - balance
+          * `total_replenished` - total_replenished
+          * `score` - score
+          * `expected_loss` - expected_loss
+          * `-id` - -id
+          * `-email` - -email
+          * `-balance` - -balance
+          * `-total_replenished` - -total_replenished
+          * `-score` - -score
+          * `-expected_loss` - -expected_loss
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: До 100, по умолчанию 25
+      - in: query
+        name: search
+        schema:
+          type: string
+          minLength: 1
+        description: Часть email, без учёта регистра
+      tags:
+      - customers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerPage'
+          description: ''
+  /api/v1/customers/{id}:
+    get:
+      operationId: api_v1_customers_retrieve
+      summary: 'Карточка клиента: признаки риска и услуги'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - customers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerDetail'
+          description: ''
+  /api/v1/model/settings:
+    get:
+      operationId: api_v1_model_settings_retrieve
+      summary: Действующие настройки модели и схема формы
+      tags:
+      - model
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelSettings'
+          description: ''
+    patch:
+      operationId: api_v1_model_settings_partial_update
+      description: 'Частичное изменение: передаются только меняемые поля. После сохранения
+        в той же транзакции пересчитываются оценки всех клиентов, подписчики SSE получают
+        событие `recalculated`. Ответ — уже действующие настройки.'
+      summary: Изменить настройки модели
+      tags:
+      - model
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedModelSettingsPatch'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedModelSettingsPatch'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedModelSettingsPatch'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelSettings'
+          description: ''
+        '400':
+          description: Ошибки по полям в `errors`, например errors.weights.prolong_wait
+  /api/v1/source/snapshot:
+    put:
+      operationId: api_v1_source_snapshot_update
+      description: Полностью заменяет аккаунты, услуги и транзакции и запускает пересчёт
+        оценок. Формат снимка описан в docs/api-contract.md. Принимает JSON в теле
+        запроса или JSON-файл в поле `file` (multipart/form-data). При ошибке данные
+        не меняются.
+      summary: Загрузить снимок исходных данных
+      tags:
+      - source
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SnapshotUpload'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotResult'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotError'
+          description: Снимок не прошёл проверку
+        '413':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotError'
+          description: Слишком большой снимок
+  /metrics:
+    get:
+      operationId: metrics_retrieve
+      description: Формат Prometheus text. Значения совпадают с `/api/v1/analytics/summary`.
+      summary: Метрики для Prometheus
+      tags:
+      - metrics
+      security:
+      - metricsToken: []
+      responses:
+        '200':
+          content:
+            text/plain:
+              schema:
+                type: string
+          description: ''
+        '401':
+          description: Нет токена или токен неверный
+components:
+  schemas:
+    AuthConfig:
+      type: object
+      properties:
+        oidc_enabled:
+          type: boolean
+          description: Показывать ли кнопку «Войти через SSO»
+      required:
+      - oidc_enabled
+    ChurnChart:
+      type: object
+      properties:
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChurnPoint'
+      required:
+      - series
+    ChurnPoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        deleted_services:
+          type: integer
+          description: Только для fact
+        expected_non_renewals:
+          type: number
+          format: double
+          description: 'Только для forecast: сумма вероятностей ухода по истекающим
+            услугам'
+        services_at_risk:
+          type: integer
+      required:
+      - date
+      - kind
+      - services_at_risk
+    CustomerDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        balance_cents:
+          type: integer
+        bonus_balance_cents:
+          type: integer
+        bonus_usable:
+          type: boolean
+        withdraw_balance_cents:
+          type: integer
+        total_replenished_cents:
+          type: integer
+        score:
+          type: number
+          format: double
+          nullable: true
+        level:
+          $ref: '#/components/schemas/LevelEnum'
+        top_reason:
+          type: string
+        expected_loss_cents:
+          type: integer
+        calculated_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Когда посчитана оценка
+        factors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Factor'
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerService'
+      required:
+      - balance_cents
+      - bonus_balance_cents
+      - bonus_usable
+      - calculated_at
+      - email
+      - expected_loss_cents
+      - factors
+      - id
+      - level
+      - score
+      - services
+      - top_reason
+      - total_replenished_cents
+      - withdraw_balance_cents
+    CustomerPage:
+      type: object
+      properties:
+        count:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerRow'
+      required:
+      - count
+      - page
+      - page_size
+      - results
+    CustomerRow:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        balance_cents:
+          type: integer
+        total_replenished_cents:
+          type: integer
+        score:
+          type: number
+          format: double
+          nullable: true
+        level:
+          $ref: '#/components/schemas/LevelEnum'
+        top_reason:
+          type: string
+        expected_loss_cents:
+          type: integer
+      required:
+      - balance_cents
+      - email
+      - expected_loss_cents
+      - id
+      - level
+      - score
+      - top_reason
+      - total_replenished_cents
+    CustomerService:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        status:
+          type: string
+        price_cents:
+          type: integer
+        payment_term:
+          type: string
+        autoprolong:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+        days_to_expiry:
+          type: integer
+          nullable: true
+          description: Целых суток до окончания оплаты, отрицательное — уже истекла
+        monthly_equivalent_cents:
+          type: integer
+        expected_loss_cents:
+          type: integer
+      required:
+      - autoprolong
+      - days_to_expiry
+      - expected_loss_cents
+      - expires_at
+      - id
+      - monthly_equivalent_cents
+      - name
+      - payment_term
+      - price_cents
+      - status
+    Factor:
+      type: object
+      properties:
+        key:
+          type: string
+        title:
+          type: string
+        value:
+          type: number
+          format: double
+          description: Сила признака от 0 до 1
+        weight:
+          type: number
+          format: double
+        contribution:
+          type: number
+          format: double
+          description: Вклад в score
+        explanation:
+          type: string
+      required:
+      - contribution
+      - explanation
+      - key
+      - title
+      - value
+      - weight
+    KindEnum:
+      enum:
+      - fact
+      - forecast
+      type: string
+      description: |-
+        * `fact` - fact
+        * `forecast` - forecast
+    LevelCounts:
+      type: object
+      properties:
+        high:
+          type: integer
+        medium:
+          type: integer
+        low:
+          type: integer
+        none:
+          type: integer
+      required:
+      - high
+      - low
+      - medium
+      - none
+    LevelEnum:
+      enum:
+      - high
+      - medium
+      - low
+      - none
+      type: string
+      description: |-
+        * `high` - high
+        * `medium` - medium
+        * `low` - low
+        * `none` - none
+    Login:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+      - password
+      - username
+    ModelSettings:
+      type: object
+      properties:
+        weights:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+        thresholds:
+          $ref: '#/components/schemas/Thresholds'
+        params:
+          type: object
+          additionalProperties: {}
+        schema:
+          allOf:
+          - $ref: '#/components/schemas/SettingsSchema'
+          readOnly: true
+      required:
+      - params
+      - schema
+      - thresholds
+      - weights
+    PatchedModelSettingsPatch:
+      type: object
+      properties:
+        weights:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+        thresholds:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+        params:
+          type: object
+          additionalProperties: {}
+    SettingsField:
+      type: object
+      properties:
+        key:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        default: {}
+        min:
+          type: number
+          format: double
+        max:
+          type: number
+          format: double
+      required:
+      - default
+      - description
+      - key
+      - title
+      - type
+    SettingsSchema:
+      type: object
+      properties:
+        weights:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettingsField'
+        thresholds:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettingsField'
+        params:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettingsField'
+      required:
+      - params
+      - thresholds
+      - weights
+    SnapshotError:
+      type: object
+      properties:
+        detail:
+          type: string
+        code:
+          type: string
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotErrorItem'
+        errors_total:
+          type: integer
+      required:
+      - code
+      - detail
+    SnapshotErrorItem:
+      type: object
+      properties:
+        path:
+          type: string
+          description: Путь к полю в исходном JSON, например services[3].ownerId
+        message:
+          type: string
+      required:
+      - message
+      - path
+    SnapshotResult:
+      type: object
+      properties:
+        accounts:
+          type: integer
+        services:
+          type: integer
+        transactions:
+          type: integer
+        status_changes:
+          type: integer
+          description: Сколько услуг сменили статус по сравнению с прошлым снимком
+        imported_at:
+          type: string
+          format: date-time
+        recalculated_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - accounts
+      - imported_at
+      - recalculated_at
+      - services
+      - status_changes
+      - transactions
+    SnapshotUpload:
+      type: object
+      properties:
+        file:
+          type: string
+          format: uri
+          description: JSON-файл снимка
+      required:
+      - file
+    Summary:
+      type: object
+      properties:
+        calculated_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: null до первого пересчёта
+        customers_total:
+          type: integer
+        by_level:
+          $ref: '#/components/schemas/LevelCounts'
+        services_at_risk:
+          type: integer
+        revenue_at_risk_cents:
+          type: integer
+        expected_loss_cents:
+          type: integer
+        explanation:
+          type: string
+          description: Как считается ожидаемая потеря
+      required:
+      - by_level
+      - calculated_at
+      - customers_total
+      - expected_loss_cents
+      - explanation
+      - revenue_at_risk_cents
+      - services_at_risk
+    Thresholds:
+      type: object
+      properties:
+        medium:
+          type: number
+          format: double
+        high:
+          type: number
+          format: double
+      required:
+      - high
+      - medium
+    TypeEnum:
+      enum:
+      - number
+      - integer
+      - boolean
+      type: string
+      description: |-
+        * `number` - number
+        * `integer` - integer
+        * `boolean` - boolean
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Имя пользователя
+          description: Обязательное поле. Не более 150 символов. Только буквы, цифры
+            и символы @/./+/-/_.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+      required:
+      - id
+      - username
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    metricsToken:
+      type: http
+      scheme: bearer
+      description: Значение METRICS_TOKEN из .env

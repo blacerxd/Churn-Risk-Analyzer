@@ -23,9 +23,10 @@ services:
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
-      SNAPSHOT_AUTOLOAD: ${SNAPSHOT_AUTOLOAD-/test_data/data.json}
+      SAMPLE_AUTOLOAD: ${SAMPLE_AUTOLOAD:-extended}
+      # Inside the network the bundled Keycloak is reached directly, not through nginx
+      OIDC_ISSUER_INTERNAL_URL: ${OIDC_ISSUER_INTERNAL_URL:-http://keycloak:8080/kc/realms/churn}
     volumes:
-      - ./test_data:/test_data:ro
       - ./sample-data:/sample-data:ro
     depends_on:
       db:
@@ -41,5 +42,30 @@ services:
     ports:
       - "127.0.0.1:8080:80"
 
+  # SSO provider for the demo: COMPOSE_PROFILES=oidc and OIDC_ENABLED=true in .env.
+  # Login is passwordless with a FIDO2 key or passkey, see keycloak/churn-realm.json.
+  # Dev mode with the embedded database on a volume, so registered keys survive restarts;
+  # the realm file is imported only into an empty volume.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.2
+    profiles: [oidc]
+    restart: unless-stopped
+    command: start-dev --import-realm
+    environment:
+      KC_HTTP_RELATIVE_PATH: /kc
+      KC_HOSTNAME: ${OIDC_PUBLIC_URL:-http://localhost:8080}/kc
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-}
+      # used by placeholders in keycloak/churn-realm.json
+      OIDC_PUBLIC_URL: ${OIDC_PUBLIC_URL:-http://localhost:8080}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_DEMO_PASSWORD: ${OIDC_DEMO_PASSWORD:-}
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+      - ./keycloak:/opt/keycloak/data/import:ro
+
 volumes:
   pgdata:
+  keycloak-data:

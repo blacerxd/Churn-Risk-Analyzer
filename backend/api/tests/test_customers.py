@@ -184,3 +184,20 @@ def test_detail_not_found(auth_client):
 
     assert response.status_code == 404
     assert response.json()['code'] == 'not_found'
+
+
+def test_list_query_count_does_not_grow(auth_client, django_assert_max_num_queries):
+    many = [account(id, email=f'user-{id}@example.test') for id in range(1, 41)]
+    replace_snapshot(snapshot(accounts=many, services=[service(10)], transactions=[]), now=NOW)
+
+    # count + page, nothing per row
+    with django_assert_max_num_queries(2):
+        response = auth_client.get(URL, {'page_size': 40})
+
+    assert len(response.json()['results']) == 40
+
+
+def test_detail_query_count(auth_client, portfolio, django_assert_max_num_queries):
+    # customer with assessment + services
+    with django_assert_max_num_queries(2):
+        auth_client.get(f'{URL}/1')

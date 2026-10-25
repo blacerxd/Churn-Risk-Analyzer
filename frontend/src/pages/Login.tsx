@@ -22,7 +22,9 @@ export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(
+    searchParams.get('error') === 'sso' ? 'Не удалось войти через SSO' : null,
+  )
   const [loading, setLoading] = useState(false)
 
   const state = location.state as LocationState | null
