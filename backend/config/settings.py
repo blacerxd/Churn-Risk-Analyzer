@@ -21,6 +21,11 @@ DEBUG = env_bool('DJANGO_DEBUG')
 ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
 
+# TLS ends on the host nginx, the container nginx passes the scheme through.
+# Only reachable through them: the backend port is bound to 127.0.0.1.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = env_bool('DJANGO_SECURE_COOKIES')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

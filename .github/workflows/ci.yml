@@ -99,7 +99,7 @@ jobs:
       - name: Healthcheck
         run: |
           for i in $(seq 1 30); do
-            curl -sf http://${{ secrets.DEPLOY_HOST }}/health && exit 0
+            curl -sfL http://${{ secrets.DEPLOY_HOST }}/health && exit 0
             sleep 2
           done
           exit 1
