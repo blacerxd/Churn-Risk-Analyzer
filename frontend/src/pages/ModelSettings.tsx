@@ -60,7 +60,10 @@ function parseServerErrors(body: unknown): { fields: FieldErrors; general: strin
   let general: string | null = null
   if (!body || typeof body !== 'object') return { fields, general }
 
-  for (const [section, value] of Object.entries(body)) {
+  const record = body as Record<string, unknown>
+  const source = record.errors && typeof record.errors === 'object' && !Array.isArray(record.errors) ? { ...record, ...(record.errors as Record<string, unknown>) } : record
+
+  for (const [section, value] of Object.entries(source)) {
     if (section === 'weights' || section === 'thresholds' || section === 'params') {
       if (value && typeof value === 'object' && !Array.isArray(value)) {
         for (const [key, message] of Object.entries(value)) {

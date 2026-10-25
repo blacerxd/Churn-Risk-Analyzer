@@ -4,7 +4,8 @@ import './index.css'
 import App from './App.tsx'
 
 async function enableMocking() {
-  if (import.meta.env.VITE_USE_MSW !== 'true') return
+  const mode = import.meta.env.VITE_USE_MSW
+  if (mode !== 'true' && mode !== 'missing') return
   const { worker } = await import('./msw/browser')
   await worker.start({ onUnhandledFrame: 'bypass' })
 }

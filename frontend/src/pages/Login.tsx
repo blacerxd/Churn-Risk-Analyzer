@@ -64,6 +64,8 @@ export default function Login() {
     } catch (err) {
       if (err instanceof ApiError && (err.status === 400 || err.status === 401)) {
         setError(INVALID_CREDENTIALS)
+      } else if (err instanceof ApiError && err.status === 429) {
+        setError('Слишком много попыток входа. Подождите минуту')
       } else {
         setError(err instanceof ApiError ? err.message : 'Не удалось выполнить вход. Попробуйте позже')
       }

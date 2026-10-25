@@ -9,7 +9,11 @@ const LATENCY_MS = 300
 let settings: ModelSettingsData = structuredClone(defaultSettings)
 const clients = new Set<{ send: (payload: { event: string; data: unknown }) => void }>()
 
+// В режиме `missing` мокаются только отсутствующие эндпоинты, а сессия настоящая
+const HYBRID = import.meta.env.VITE_USE_MSW === 'missing'
+
 function isAuthed(): boolean {
+  if (HYBRID) return true
   return sessionStorage.getItem(AUTH_KEY) === '1'
 }
 
@@ -68,7 +72,7 @@ export const handlers = [
       sessionStorage.setItem(AUTH_KEY, '1')
       return HttpResponse.json({ id: 1, username: 'admin' })
     }
-    return HttpResponse.json({ detail: 'Неверный логин или пароль', code: 'invalid_credentials' }, { status: 400 })
+    return HttpResponse.json({ detail: 'Неверный логин или пароль', code: 'invalid_credentials' }, { status: 401 })
   }),
   http.get(`${API}/auth/me`, () => (isAuthed() ? HttpResponse.json({ id: 1, username: 'admin' }) : unauthorized())),
   http.post(`${API}/auth/logout`, () => {
@@ -165,7 +169,7 @@ export const handlers = [
     const patch = (await request.json()) as ModelSettingsPatch
     const errors = validateSettings(patch)
     if (Object.keys(errors).length > 0) {
-      return HttpResponse.json({ detail: 'Проверьте значения', code: 'invalid', ...errors }, { status: 400 })
+      return HttpResponse.json({ detail: 'Некорректные данные', code: 'invalid', errors }, { status: 400 })
     }
     settings = {
       ...settings,
@@ -182,13 +186,15 @@ export const handlers = [
     await pause(900)
     const body = (await request.json()) as { accounts?: unknown[]; services?: unknown[]; transactions?: unknown[] }
     if (!Array.isArray(body.accounts) || !Array.isArray(body.services) || !Array.isArray(body.transactions)) {
-      return HttpResponse.json({ detail: 'Некорректный снимок', code: 'invalid', errors: ['Нужны массивы accounts, services и transactions'] }, { status: 400 })
+      return HttpResponse.json({ detail: 'Некорректный снимок', code: 'invalid_snapshot', errors: [{ path: '$', message: 'Нужны массивы accounts, services и transactions' }], errors_total: 1 }, { status: 400 })
     }
     setTimeout(() => broadcast('snapshot'), 300)
     return HttpResponse.json({
       accounts: body.accounts.length,
       services: body.services.length,
       transactions: body.transactions.length,
+      status_changes: 0,
+      imported_at: new Date().toISOString(),
       recalculated_at: new Date().toISOString(),
     })
   }),
