@@ -104,6 +104,8 @@ def test_missing_field_is_reported_with_path():
      'у даты нет часового пояса, ожидается UTC (суффикс Z)'),
     (snapshot(services=[service(expiresAt='завтра')]), 'services[0].expiresAt',
      'ожидается дата в формате ISO 8601'),
+    (snapshot(services=[service(createdAt=1_760_000_000)]), 'services[0].createdAt',
+     'ожидается дата в формате ISO 8601'),
     (snapshot(transactions=[transaction(amount=-1)]), 'transactions[0].amount',
      'сумма не может быть отрицательной'),
 ])
@@ -142,14 +144,19 @@ def test_unknown_enum_value(payload, path):
 
 
 def test_duplicate_id_points_to_first_occurrence():
-    errors = errors_of(snapshot(accounts=[account(1), account(2), account(1, email='x@example.test')]))
+    errors = errors_of(snapshot(
+        accounts=[account(1), account(2), account(1, email='x@example.test')],
+    ))
     assert errors == [SnapshotError('accounts[2].id', 'id 1 уже встречался в accounts[0]')]
 
 
 def test_duplicate_email():
     errors = errors_of(snapshot(accounts=[account(1), account(2, email='user-0001@example.test')]))
     assert errors == [
-        SnapshotError('accounts[1].email', "значение 'user-0001@example.test' уже встречалось в accounts[0]"),
+        SnapshotError(
+            'accounts[1].email',
+            "значение 'user-0001@example.test' уже встречалось в accounts[0]",
+        ),
     ]
 
 

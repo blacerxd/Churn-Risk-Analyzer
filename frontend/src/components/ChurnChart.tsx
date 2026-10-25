@@ -3,14 +3,16 @@ import { useQuery } from '@tanstack/react-query'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { ApiError, apiFetch, queryKeys } from '../lib/api'
 import type { ChurnChartData } from '../lib/api'
-import { cardClass, headingClass, mutedClass } from './styles'
+import { cardClass, headingClass, mutedClass, segmentActiveClass, segmentClass, segmentIdleClass } from './styles'
 import { EmptyState, ErrorState, Skeleton } from './ui'
 
 const RANGES = [14, 30, 90] as const
 type Range = (typeof RANGES)[number]
 
+// Оба цвета различимы и на белом, и на тёмном фоне.
 const FACT_COLOR = '#4CC6F1'
-const FORECAST_COLOR = '#182D48'
+const FORECAST_COLOR = '#E97C35'
+const number = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 })
 
 interface Row {
   date: string
@@ -52,11 +54,7 @@ export default function ChurnChart() {
               type="button"
               aria-pressed={days === range}
               onClick={() => setDays(range)}
-              className={`rounded-lg border px-3.5 py-1.5 font-['Inter'] text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] ${
-                days === range
-                  ? 'border-[#182D48] bg-[#182D48] text-white'
-                  : 'border-neutral-300 bg-white text-neutral-700 hover:border-[#4CC6F1] dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300'
-              }`}
+              className={`${segmentClass} ${days === range ? segmentActiveClass : segmentIdleClass}`}
             >
               {range} дн.
             </button>
@@ -76,11 +74,12 @@ export default function ChurnChart() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#a3a3a3" strokeOpacity={0.3} />
-                  <XAxis dataKey="date" tickFormatter={formatDay} stroke="#737373" />
-                  <YAxis allowDecimals={false} stroke="#737373" width={32} />
+                  <XAxis dataKey="date" tickFormatter={formatDay} stroke="#737373" minTickGap={16} />
+                  <YAxis stroke="#737373" width={32} />
                   <Tooltip
                     labelFormatter={(label) => new Date(String(label)).toLocaleDateString('ru-RU')}
-                    contentStyle={{ borderRadius: 12, fontFamily: 'Inter, sans-serif', fontSize: 12 }}
+                    formatter={(value) => number.format(Number(value))}
+                    contentStyle={{ borderRadius: 12, fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#000' }}
                   />
                   <Legend />
                   <Line type="monotone" dataKey="fact" name="Факт: удалено услуг" stroke={FACT_COLOR} strokeWidth={2.5} dot={false} connectNulls />

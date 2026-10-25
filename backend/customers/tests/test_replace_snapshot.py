@@ -119,13 +119,14 @@ def test_status_changes_are_recorded():
 
 
 def test_status_history_survives_service_removal():
-    replace_snapshot(snapshot(services=[service(10, status='prolong_wait')], transactions=[]), now=T1)
+    replace_snapshot(
+        snapshot(services=[service(10, status='prolong_wait')], transactions=[]), now=T1,
+    )
     replace_snapshot(snapshot(services=[service(10, status='deleted')], transactions=[]), now=T2)
     replace_snapshot(snapshot(accounts=[], services=[], transactions=[]), now=T2)
 
-    assert list(ServiceStatusEvent.objects.values_list('service_id', 'old_status', 'new_status')) == [
-        (10, 'prolong_wait', 'deleted'),
-    ]
+    events = ServiceStatusEvent.objects.values_list('service_id', 'old_status', 'new_status')
+    assert list(events) == [(10, 'prolong_wait', 'deleted')]
 
 
 def test_signal_is_sent_inside_import_transaction():

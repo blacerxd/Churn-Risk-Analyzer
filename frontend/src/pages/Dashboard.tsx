@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import ChurnChart from '../components/ChurnChart'
 import { EmptyState, ErrorState, PageHeader, RiskBadge, Skeleton } from '../components/ui'
-import { LEVEL_BAR_CLASS, cardClass, headingClass, mutedClass, tableHeadClass } from '../components/styles'
+import { LEVEL_BAR_CLASS, btnPrimary, cardBase, cardClass, headingClass, linkClass, mutedClass, tableHeadClass } from '../components/styles'
 import { ApiError, apiFetch, queryKeys } from '../lib/api'
 import type { CustomersPage, RiskLevel, Summary } from '../lib/api'
 import { LEVEL_LABEL, formatDateTime, formatEuro, formatInt, formatScore } from '../lib/format'
@@ -70,12 +70,12 @@ function TopCustomers() {
   })
 
   return (
-    <section className={`${cardClass} p-0`} aria-labelledby="top-risk-title">
+    <section className={cardBase} aria-labelledby="top-risk-title">
       <div className="flex flex-col gap-1 p-6 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 id="top-risk-title" className={`${headingClass} text-lg`}>
           Топ-5 клиентов под риском
         </h2>
-        <Link to="/customers?ordering=-score" className="font-['Inter'] text-sm font-medium text-[#182D48] underline-offset-4 hover:underline dark:text-[#4CC6F1]">
+        <Link to="/customers" className={`${linkClass} text-sm`}>
           Все клиенты
         </Link>
       </div>
@@ -114,7 +114,7 @@ function TopCustomers() {
               {data.results.map((customer) => (
                 <tr key={customer.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-950">
                   <td className="px-4 py-3">
-                    <Link to={`/customers/${customer.id}`} className="font-medium text-[#182D48] hover:underline focus:outline-none focus:ring-2 focus:ring-[#4CC6F1] dark:text-[#4CC6F1]">
+                    <Link to={`/customers/${customer.id}`} className={linkClass}>
                       {customer.email}
                     </Link>
                     <div className="text-xs text-neutral-500">ID {customer.id}</div>
@@ -158,7 +158,7 @@ export default function Dashboard() {
             title="Данных пока нет"
             hint="Загрузите снимок данных на странице «Данные» — после этого появятся метрики и список клиентов под риском."
             action={
-              <Link to="/data" className="inline-flex items-center justify-center rounded-lg bg-[#4CC6F1] px-4 py-2 font-['Exo_2'] font-semibold text-black transition-all hover:brightness-105 active:scale-[0.99]">
+              <Link to="/data" className={btnPrimary}>
                 Перейти к данным
               </Link>
             }
@@ -170,9 +170,9 @@ export default function Dashboard() {
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <LevelsCard summary={summary} />
-            <MetricCard title="Услуги под риском" value={formatInt(summary.services_at_risk)} hint="Услуги клиентов с учтённым риском оттока" />
-            <MetricCard title="Выручка под риском" value={formatEuro(summary.revenue_at_risk_cents)} hint="Месячная стоимость услуг под риском" />
-            <MetricCard title="Ожидаемая потеря" value={formatEuro(summary.expected_loss_cents)} hint="С учётом вероятности оттока" />
+            <MetricCard title="Услуги под риском" value={formatInt(summary.services_at_risk)} hint="Услуги клиентов со средним и высоким риском" />
+            <MetricCard title="Выручка под риском" value={formatEuro(summary.revenue_at_risk_cents)} hint="Стоимость этих услуг за горизонт потерь" />
+            <MetricCard title="Ожидаемая потеря" value={formatEuro(summary.expected_loss_cents)} hint="Стоимость услуг всех клиентов × вероятность ухода" />
           </div>
 
           <section className={cardClass} aria-labelledby="explanation-title">

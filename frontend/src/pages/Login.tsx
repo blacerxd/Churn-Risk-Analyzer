@@ -3,7 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AezaLogo, AezaPattern } from '../components/ui'
-import { btnPrimary, btnSecondary, cardClass, headingClass, inputClass, inputErrorClass, labelClass, mutedClass } from '../components/styles'
+import { btnPrimary, btnSecondary, cardClass, headingClass, inputClass, labelClass, mutedClass } from '../components/styles'
 import { ApiError, apiFetch, queryKeys } from '../lib/api'
 import type { AuthConfig } from '../lib/api'
 
@@ -103,7 +103,7 @@ export default function Login() {
               onChange={handleUsername}
               disabled={loading}
               aria-invalid={hasError}
-              className={`${inputClass} ${hasError ? inputErrorClass : ''}`}
+              className={inputClass({ invalid: hasError })}
             />
           </div>
 
@@ -123,7 +123,7 @@ export default function Login() {
                 disabled={loading}
                 aria-invalid={hasError}
                 aria-describedby={hasError ? 'login-error' : undefined}
-                className={`${inputClass} pr-20 ${hasError ? inputErrorClass : ''}`}
+                className={`${inputClass({ invalid: hasError })} pr-20`}
               />
               <button
                 type="button"

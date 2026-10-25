@@ -92,6 +92,22 @@ def test_money_is_consistent_across_levels(assessments, sample_services):
     assert 0 < totals.expected_loss <= full_revenue * params.loss_horizon_months
 
 
+def test_results_documented_in_model_md(assessments, sample_services):
+    """Таблица «Результаты на данных кейса» в docs/model.md: при изменении модели обновить её."""
+    assert {cid: (a.score, a.level) for cid, a in assessments.items() if a.score is not None} == {
+        9: (77.5, RiskLevel.HIGH), 1: (71.6, RiskLevel.HIGH), 5: (69.3, RiskLevel.HIGH),
+        10: (51.1, RiskLevel.MEDIUM), 6: (8.2, RiskLevel.LOW), 4: (6.0, RiskLevel.LOW),
+    }
+    params = ModelConfig.default().params
+    totals = portfolio_money([
+        (a.level, customer_money(sample_services[cid], a.score, params))
+        for cid, a in assessments.items()
+    ], params)
+    assert (totals.services_at_risk, totals.revenue_at_risk, totals.expected_loss) == (
+        12, 1_171_604, 864_885,
+    )
+
+
 def test_every_feature_fires_on_sample_data(assessments):
     fired = {
         factor.key
